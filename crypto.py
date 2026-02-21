@@ -16,8 +16,6 @@ import os
 import subprocess
 import platform
 
-
-
 """
 For AES symmetric encryption
 """
@@ -86,14 +84,15 @@ class Symmetric:
         return fernet.decrypt(ciphertext)
     
     """
-    Checks if a file path leads to a USB storage device. This function is currently only implemented for Linux
-    because checking this information on Windows is a little more difficult.
+    Checks if a file path leads to a USB storage device. Note that the USB drive must be mounted
+    This function is currently only implemented for Linux because checking this information on 
+    Windows is a little more difficult.
 
     Parameters: the path to check
     Returns: true if the path leads to a USB storage device, false otherwise
     """
     @staticmethod
-    def is_usb_linux(path: str) -> Tuple[bool, str]:
+    def is_usb_linux(path: str) -> bool:
         if platform.system() != "Linux":
             raise Exception("Storage device-type checking is only available for Linux systems.")
         
@@ -102,62 +101,28 @@ class Symmetric:
         df_output = subprocess.check_output(["df", path]).decode().splitlines()
         device = df_output[1].split()[0]
 
-        lsblk_output = subprocess.check_output(
-            ["lsblk", "-no", "TRAN", device]
+        parent_disk = subprocess.check_output(
+            ["lsblk", "-no", "PKNAME", device]
         ).decode().strip()
 
-        return lsblk_output == "usb", device
+        if not parent_disk:
+            return False
+
+        transport = subprocess.check_output(
+            ["lsblk", "-no", "TRAN", f"/dev/{parent_disk}"]
+        ).decode().strip()
+
+        return transport == "usb"
 
     """
-    Formats a usb device. This function currently only available for Linux.
-
-    Parameters: the path of the usb device
-    Returns: true on success, false on failure
-    """
-    @staticmethod
-    def format_usb_linux(device_path: str) -> bool:
-        if platform.system() != "Linux":
-            raise Exception("USB formatting is only available for Linux systems.")
-
-        user_confirm = input("WARNING: This operation will erase all data on the selected USB storage device. Do you want to continue? (Y / n): ")
-        if user_confirm != "Y" or user_confirm != "y":
-            print("USB write operation cancelled.")
-            return False
-        
-        try:
-            subprocess.run(['sudo', 'umount', device_path], check=False)
-        except Exception:
-            pass
-
-        format_cmd = ['sudo', f'mkfs.ext4', '-F', device_path]
-
-        print(f"Attempting to format device {device_path} to ext4...")
-        try:
-            subprocess.run(
-                format_cmd, 
-                check=True, 
-                stdout=subprocess.PIPE, 
-                stderr=subprocess.PIPE
-            )
-            print("USB storage device formatted successfully.")
-            return True
-        except subprocess.CalledProcessError as e:
-            print(f"An error occurred: {e.stderr.decode()}")
-            return False
-        except Exception as e:
-            print(f"An unexpected error occured: {e}")
-            return False
-        
-        
-
-    """
-    Formats a USB storage device and then writes the AES key to it. We only allow writes to USB 
+    Writes the AES key to a USB storage device. We only allow writes to USB 
     devices because we don't want users accidentally writing their keys to random directories. 
     Because is_usb() is currently only implemented for Linux, this means that key writes can 
     only be done on Linux. Non-Linux users should use the display_key() function to view their 
     AES key from the program, where they can then manually copy it for sharing.
 
-    Parameters: the path to write to, and the key to write
+    Parameters: the path to a USB storage device (this path should not include the file name ex:
+    something like /media/usb_drive is correct), and the key to write
     Returns: true on success, false on failure
     """
     @staticmethod
@@ -165,15 +130,13 @@ class Symmetric:
         if platform.system() != "Linux":
             raise Exception("Writing AES keys to a file is only available for Linux systems.")
         
-        is_usb, device_path = Symmetric.is_usb_linux(path)
+        is_usb = Symmetric.is_usb_linux(path)
+
+        filepath = f"{path}/aes.key"
 
         if is_usb:
-            if not Symmetric.format_usb_linux:
-                print("Failed to format USB storage device.")
-                return False
-
             try:
-                with open(path, "wb") as key_file:
+                with open(filepath, "wb") as key_file:
                     key_file.write(key)
             except OSError:
                 print("Failed to write key to USB storage device")
@@ -295,10 +258,11 @@ Main function for testing
 """
 def main():
 
+    
     # testing symmetric encryption
     key = Symmetric.load_or_generate_key()
     fernet = Symmetric.load_fernet(key)
-
+    
     plaintext = input("Enter plaintext for symmetric testing: ")
     plaintext_b = plaintext.encode("utf-8")
 
@@ -321,7 +285,7 @@ def main():
 
     decrypted_plaintext = Asymmetric.decrypt_rsa(ciphertext, private_key)
     print(f"Decrypted RSA plaintext: {decrypted_plaintext.decode("utf-8")}")
-
+    
 
 
     # testing key display and USB writes
@@ -329,7 +293,8 @@ def main():
     Symmetric.display_key(key)
 
     user_in = input("Enter a USB device that you don't care about. Press 'Y' when it is inserted: ")
-    if user_in != "Y" or user_in != "y":
+    if user_in != "Y" and user_in != "y":
+        print(user_in)
         print("Exiting")
         return
     
