@@ -2,7 +2,7 @@
 This file contains the classes of the encryption layer
 """
 
-from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -13,140 +13,120 @@ from cryptography.hazmat.primitives import serialization
 from typing import Tuple
 
 import os
-import subprocess
-import platform
+from argon2.low_level import hash_secret_raw, Type
 
 """
 For AES symmetric encryption
 """
 class Symmetric:
+    AESGCM_DEK_LEN = 32
+    AESGCM_SALT_LEN = 16
+    AESGCM_NONCE_LEN = 12
+    GCM_TAG_LEN = 16
+
     """
     Checks if an AES key file exists and either loads the key from that file
     or generates a new key and writes it to a file.
 
-    Parameters: void
-    Returns: AES key bytes on success, nothing on failure
+    Parameters: the user's passphrase
+    Returns: data encryption key on success, nothing on failure
     """
     @staticmethod
-    def load_or_generate_key() -> bytes:
-        aes_key = b""
+    def load_or_generate_key(passphrase: str) -> bytes:
+        dek = b""
     
         if Path("aes.key").exists() and Path("aes.key").is_file():
+            salt = b""
+            nonce = b""
+            ciphertext = b""
+
             try:
                 with open("aes.key", "rb") as aes_key_file:
-                    aes_key = aes_key_file.read()
+                    salt = aes_key_file.read(Symmetric.AESGCM_SALT_LEN)
+                    nonce = aes_key_file.read(Symmetric.AESGCM_NONCE_LEN)
+                    ciphertext = aes_key_file.read(Symmetric.GCM_TAG_LEN + Symmetric.AESGCM_DEK_LEN)
             except FileNotFoundError:
                 print("aes.key file not found")
                 return
             except OSError:
                 print("Failed to read AES key from aes.key")
                 return
+
+            kek = hash_secret_raw(
+                secret=passphrase.encode(),
+                salt=salt,
+                time_cost=3,
+                memory_cost=65536,
+                parallelism=2,
+                hash_len=32,
+                type=Type.ID
+            )
+
+            aesgcm = AESGCM(kek)
+            dek = aesgcm.decrypt(nonce, ciphertext, None)
+
         else:
-            aes_key = Fernet.generate_key()
+            dek = os.urandom(Symmetric.AESGCM_DEK_LEN)
+            salt = os.urandom(Symmetric.AESGCM_SALT_LEN)
+            kek = hash_secret_raw(
+                secret=passphrase.encode(),
+                salt=salt,
+                time_cost=3,
+                memory_cost=65536,
+                parallelism=2,
+                hash_len=32,
+                type=Type.ID
+            )
+
+            aesgcm = AESGCM(kek)
+            nonce = os.urandom(Symmetric.AESGCM_NONCE_LEN)
+            ciphertext = aesgcm.encrypt(nonce, dek, None)
             
             try:
                 with open("aes.key", "wb") as aes_key_file:
-                    aes_key_file.write(aes_key)
+                    aes_key_file.write(salt)
+                    aes_key_file.write(nonce)
+                    aes_key_file.write(ciphertext)
             except OSError:
-                print("Failed to write AES key to aes.key")
+                print("Failed to write encrypted blob to aes.key")
                 return
 
-        return aes_key
-
-    """
-    Loads an instance of Fernet from the given AES key
-
-    Parameters: bytes object of the AES key
-    Returns: Fernet instance
-    """
-    @staticmethod
-    def load_fernet(aes_key: bytes) -> Fernet:
-        return Fernet(aes_key)
+        return dek
 
     """
     Encrypts the given plaintext using AES
 
-    Parameters: bytes object of the plaintext, Fernet object that has been initialized with the desired AES key
-    Returns: bytes object of the AES encrypted ciphertext
+    Parameters: bytes object of the plaintext, data encryption key
+    Returns: bytes object of the nonce, bytes object of the AES encrypted ciphertext
     """
     @staticmethod
-    def encrypt_aes(plaintext: bytes, fernet: Fernet) -> bytes:
-        return fernet.encrypt(plaintext)
+    def encrypt_aes(plaintext: bytes, dek: bytes) -> Tuple[bytes, bytes]:
+        aesgcm = AESGCM(dek)
+        nonce = os.urandom(Symmetric.AESGCM_NONCE_LEN)
+
+        ciphertext = aesgcm.encrypt(
+            nonce, plaintext,
+            associated_data=None
+        )
+
+        return nonce, ciphertext
 
     """
     Decrypts the given ciphertext using AES
 
-    Parameters: bytes object of the ciphertext, Fernet object that has been initialized with the desired AES key
+    Parameters: bytes object of the ciphertext, data encryption key, and the nonce
     Returns: bytes object of the decrypted plaintext
     """
     @staticmethod
-    def decrypt_aes(ciphertext: bytes, fernet: Fernet) -> bytes:
-        return fernet.decrypt(ciphertext)
-    
-    """
-    Checks if a file path leads to a USB storage device. Note that the USB drive must be mounted
-    This function is currently only implemented for Linux because checking this information on 
-    Windows is a little more difficult.
+    def decrypt_aes(ciphertext: bytes, dek: bytes, nonce: bytes) -> bytes:
+        aesgcm = AESGCM(dek)
 
-    Parameters: the path to check
-    Returns: true if the path leads to a USB storage device, false otherwise
-    """
-    @staticmethod
-    def is_usb_linux(path: str) -> bool:
-        if platform.system() != "Linux":
-            raise Exception("Storage device-type checking is only available for Linux systems.")
-        
-        path = os.path.abspath(path)
+        plaintext = aesgcm.decrypt(
+            nonce, ciphertext,
+            associated_data= None
+        )
 
-        df_output = subprocess.check_output(["df", path]).decode().splitlines()
-        device = df_output[1].split()[0]
-
-        parent_disk = subprocess.check_output(
-            ["lsblk", "-no", "PKNAME", device]
-        ).decode().strip()
-
-        if not parent_disk:
-            return False
-
-        transport = subprocess.check_output(
-            ["lsblk", "-no", "TRAN", f"/dev/{parent_disk}"]
-        ).decode().strip()
-
-        return transport == "usb"
-
-    """
-    Writes the AES key to a USB storage device. We only allow writes to USB 
-    devices because we don't want users accidentally writing their keys to random directories. 
-    Because is_usb() is currently only implemented for Linux, this means that key writes can 
-    only be done on Linux. Non-Linux users should use the display_key() function to view their 
-    AES key from the program, where they can then manually copy it for sharing.
-
-    Parameters: the path to a USB storage device (this path should not include the file name ex:
-    something like /media/usb_drive is correct), and the key to write
-    Returns: true on success, false on failure
-    """
-    @staticmethod
-    def write_key_linux(path: str, key: bytes) -> bool:
-        if platform.system() != "Linux":
-            raise Exception("Writing AES keys to a file is only available for Linux systems.")
-        
-        is_usb = Symmetric.is_usb_linux(path)
-
-        filepath = f"{path}/aes.key"
-
-        if is_usb:
-            try:
-                with open(filepath, "wb") as key_file:
-                    key_file.write(key)
-            except OSError:
-                print("Failed to write key to USB storage device")
-                return False
-        else:
-            print(path + " does not lead to a USB storage device.")
-            print("Write operation Failed")
-            return False
-        
-        return True
+        return plaintext
     
     """
     Displays the AES key as hex.
@@ -170,11 +150,13 @@ class Asymmetric:
     or generates a new key and writes it to a file. The RSA public key is then derived from
     the private key.
 
-    Parameters: void
+    Parameters: the user's passphrase
     Returns: two bytes objects on success (private key and public key), and nothing on failure
     """
     @staticmethod
-    def load_or_generate_key_pair() -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+    def load_or_generate_key_pair(passphrase: str) -> Tuple[rsa.RSAPrivateKey, rsa.RSAPublicKey]:
+        passphrase = passphrase.encode("utf-8")
+
         private_key = None
         public_key = None
 
@@ -183,7 +165,7 @@ class Asymmetric:
                 with open("rsa_private.key", "rb") as rsa_private_key_file:
                     private_key = serialization.load_pem_private_key(
                         rsa_private_key_file.read(),
-                        password=None
+                        password=passphrase
                     )
             except FileNotFoundError:
                 print("rsa_private.key file not found")
@@ -200,7 +182,7 @@ class Asymmetric:
             pem_bytes = private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
+                encryption_algorithm=serialization.BestAvailableEncryption(passphrase)
             )
             try:
                 with open("rsa_private.key", "wb") as rsa_private_key_file:
@@ -258,24 +240,31 @@ Main function for testing
 """
 def main():
 
+    # setting passphrase
+    passphrase = input("Enter your passphrase: ")
     
     # testing symmetric encryption
-    key = Symmetric.load_or_generate_key()
-    fernet = Symmetric.load_fernet(key)
+    
+    print("SYMMETRIC ENCRYPTION TESTING: ")
+    
+    key = Symmetric.load_or_generate_key(passphrase)
     
     plaintext = input("Enter plaintext for symmetric testing: ")
     plaintext_b = plaintext.encode("utf-8")
 
-    ciphertext = Symmetric.encrypt_aes(plaintext_b, fernet)
+    nonce, ciphertext = Symmetric.encrypt_aes(plaintext_b, key)
     print(f"AES ciphertext: {ciphertext.hex()}")
 
-    decrypted_plaintext = Symmetric.decrypt_aes(ciphertext, fernet)
+    decrypted_plaintext = Symmetric.decrypt_aes(ciphertext, key, nonce)
     print(f"Decrypted AES plaintext: {decrypted_plaintext.decode("utf-8")}")
 
 
 
     # testing asymmetric encryption
-    private_key, public_key = Asymmetric.load_or_generate_key_pair()
+
+    print("ASYMMETRIC ENCRYPTION TESTING: ")
+
+    private_key, public_key = Asymmetric.load_or_generate_key_pair(passphrase)
 
     plaintext = input("Enter plaintext for asymmetric testing: ")
     plaintext_b = plaintext.encode("utf-8")
@@ -288,22 +277,12 @@ def main():
     
 
 
-    # testing key display and USB writes
+    # testing key display
+
+    print("KEY DISPLAY TESTING")
+
     print("AES key (hex): ")
     Symmetric.display_key(key)
-
-    user_in = input("Enter a USB device that you don't care about. Press 'Y' when it is inserted: ")
-    if user_in != "Y" and user_in != "y":
-        print(user_in)
-        print("Exiting")
-        return
-    
-    user_in = input("Enter the path to the usb: ")
-    
-    if Symmetric.write_key_linux(user_in, key):
-        print("AES key successfully written to USB storage device.")
-    else:
-        print("Failed to write AES key to USB storage device.")
 
 if __name__ == "__main__":
     main()
