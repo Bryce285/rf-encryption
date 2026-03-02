@@ -1,0 +1,10 @@
+[workspace]
+authors = ["Taiming <33017152-taimingyj@users.noreply.gitlab.com>"]
+channels = ["conda-forge"]
+name = "rf-encryption"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
