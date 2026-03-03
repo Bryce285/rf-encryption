@@ -12,3 +12,12 @@ cryptography = ">=46.0.5,<47"
 pathlib = ">=1.0.1,<2"
 typing = ">=3.10.0.0,<4"
 argon2-cffi = ">=25.1.0,<26"
+numpy = ">=2.4.2,<3"
+reedsolo = ">=1.7.0,<2"
+pydub = ">=0.25.1,<0.26"
+scipy = ">=1.17.1,<2"
+pysimplegui = ">=4.60.5,<5"
+
+[pypi-dependencies]
+sounddevice = ">=0.5.5, <0.6"
+soundfile = ">=0.13.1, <0.14"
