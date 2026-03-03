@@ -3,13 +3,12 @@ This file contains the classes of the encryption layer
 """
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from pathlib import Path
-
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 
+from pathlib import Path
 from typing import Tuple
 
 import os
@@ -90,7 +89,7 @@ class Symmetric:
             except OSError:
                 print("Failed to write encrypted blob to aes.key")
                 return
-
+            
         return dek
 
     """
