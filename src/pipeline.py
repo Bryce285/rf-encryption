@@ -1,0 +1,1 @@
+# High-level orchestration: record → encrypt → modulate → play, and reverse pipeline for demodulation → decryption

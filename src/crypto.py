@@ -1,5 +1,5 @@
 """
-This file contains the classes of the encryption layer
+Key derivation and encryption/decryption for AES and RSA
 """
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -231,8 +231,6 @@ class Asymmetric:
         )
 
         return plaintext
-
-
 
 """
 Main function for testing

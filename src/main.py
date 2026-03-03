@@ -1,14 +1,8 @@
 """
-This file contains the main function for the program.
+Routes to CLI, GUI, or demo based on command-line arguments
 """
 
 import crypto
-
-"""
-Basic program loop. This can be implemented once we have message sending/receiving set up
-"""
-def main():
-    
 
 if __name__ == "__main__":
     main()
