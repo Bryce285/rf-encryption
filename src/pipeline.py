@@ -4,9 +4,13 @@ import cli
 import crypto
 import modulation
 import threading
+import framing
 from interface import Interface
+import protocol
 
 # TODO - need to chunk the data when we send it and have a reassembly protocol when we receive
+
+MAX_RETRIES = 3
 
 class Cli:
     def __init__(self, id: str, simulated: bool):
@@ -18,34 +22,45 @@ class Cli:
         self.rsa_pub: bytes
         self.receiver_pub_key: bytes
         self.channel = "ch1"
+        self.ack_event = threading.Event()
+        self.last_ack_seq = -1
 
     def receive_signal(self, cipher: str):
+        reassembler = protocol.Reassembler()
+
         while True:
-            plaintext = ""
+            reassembler.clear_timeouts()
+            
+            rx_msg = self.interface.receive()
+            if rx_msg is None or rx_msg.size == 0:
+                continue
 
-            if cipher == "aes":
-                rx_msg = self.interface.receive()
-                if rx_msg is None or rx_msg.size == 0:
-                    continue
+            demodulated = modulation.afsk_to_text(rx_msg)
+            
+            ack_seq = framing.parse_ack(demodulated)
+            if ack_seq is not None:
+                self.last_ack_seq = ack_seq
+                self.ack_event.set()
+                continue
 
-                print("received message from interface")
+            parsed = framing.parse_packet(demodulated)
+            if parsed is not None:
+                msg_id = parsed.get("message_id")
+                seq = parsed.get("seq")
+                total = parsed.get("total")
+                payload = parsed.get("payload")
 
-                demodulated_rx = modulation.afsk_to_text(rx_msg)
-                nonce = demodulated_rx[:crypto.Symmetric.AESGCM_NONCE_LEN]
-                ciphertext = demodulated_rx[crypto.Symmetric.AESGCM_NONCE_LEN:len(demodulated_rx):]
+                assembled = reassembler.add_packet(msg_id, seq, total, payload)
+                if assembled is not None:
 
-                print("Nonce type:", type(nonce))
-                print("Nonce length:", len(nonce))      
-                plaintext = crypto.Symmetric.decrypt_aes(ciphertext, self.aes_dek, nonce)
-            else:
-                rx_msg = self.interface.receive()
-                if rx_msg is None or rx_msg.size == 0:
-                    continue
-
-                ciphertext = modulation.afsk_to_text(rx_msg)
-                plaintext = crypto.Asymmetric.decrypt_rsa(ciphertext, self.rsa_priv)
-
-            cli.print_msg(self.channel, cipher, plaintext)
+                    if cipher == "aes":
+                        nonce = assembled[:crypto.Symmetric.AESGCM_NONCE_LEN]
+                        ciphertext = assembled[crypto.Symmetric.AESGCM_NONCE_LEN]
+                        plaintext = crypto.Symmetric.decrypt_aes(ciphertext, self.aes_dek, nonce)
+                    else:
+                        plaintext = crypto.Asymmetric.decrypt_rsa(assembled, self.rsa_priv)
+            
+                    cli.print_msg(self.channel, cipher, plaintext)
 
     def orchestrateCli(self, cipher: str):
         if cipher != "aes" and cipher != "rsa":
@@ -63,6 +78,7 @@ class Cli:
 
         threading.Thread(target=self.receive_signal, args=(cipher,), daemon=True).start()
         while quit == False:
+            packetizer = protocol.Packetizer()
             msg = cli.get_msg(1, cipher)
 
             if msg.startswith("\\SYSCMD"):
@@ -82,11 +98,29 @@ class Cli:
                 nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg, self.aes_dek)
 
                 tx_msg = (nonce + ciphertext)
-                signal = modulation.text_to_afsk(tx_msg)
-                self.interface.send(signal, self.channel)
+                packets = packetizer.get_packets(tx_msg)
 
-            
+                for seq, packet in enumerate(packets):
+                    retries = 0
+
+                    while retries < MAX_RETRIES:
+                        signal  = modulation.text_to_afsk(packet)
+                        self.interface.send(signal, self.channel)
+
+                        self.ack_event.clear()
+                        if self.ack_event.wait(timeout=1.0):
+                            if self.last_ack_seq == seq:
+                                break
+                        else:
+                            retries += 1
+                            print(f"Retrying packet {seq}")
+                    
+                    if retries == MAX_RETRIES:
+                        print(f"Failed to send packet {seq}, aborting message")
+                        break
+                        
             else:
+                # TODO - need to update the rsa sending to match the above pattern
                 ciphertext = crypto.Asymmetric.encrypt_rsa(msg, self.receiver_pub_key)
 
                 signal = modulation.text_to_afsk(ciphertext)

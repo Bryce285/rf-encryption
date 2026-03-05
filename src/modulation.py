@@ -3,8 +3,6 @@
 import numpy as np
 
 def text_to_afsk(data, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_rate=48000):
-    import numpy as np
-    
     if isinstance(data, str):
         data = data.encode()
 

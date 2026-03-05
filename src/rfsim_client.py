@@ -41,7 +41,6 @@ class RadioClient:
         }).encode(), self.server_addr)
 
     def send(self, signal):
-        # Convert full signal to bytes
         encoded = base64.b64encode(signal.tobytes()).decode()
         self.sock.sendto(json.dumps({
             "type": "transmit",
