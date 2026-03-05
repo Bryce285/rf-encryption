@@ -2,14 +2,26 @@
 
 import numpy as np
 
-def text_to_afsk(text, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_rate=48000):
-    bits = ''.join(format(ord(c), '08b') for c in text)
+def text_to_afsk(data, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_rate=48000):
+    import numpy as np
+    
+    if isinstance(data, str):
+        data = data.encode()
+
+    bits = ''.join(format(byte, '08b') for byte in data)
+
     bit_duration = 1 / baud_rate
-    t = np.arange(0, len(bits) * bit_duration, 1 / sample_rate)
-    signal = np.zeros_like(t)
+    samples_per_bit = int(bit_duration * sample_rate)
+
+    t_bit = np.arange(samples_per_bit) / sample_rate
+    signal = np.zeros(len(bits) * samples_per_bit)
+
     for i, bit in enumerate(bits):
         freq = mark_freq if bit == '1' else space_freq
-        signal[i * int(bit_duration * sample_rate):(i + 1) * int(bit_duration * sample_rate)] = np.sin(2 * np.pi * freq * t[:int(bit_duration * sample_rate)])
+        start = i * samples_per_bit
+        end = (i + 1) * samples_per_bit
+        signal[start:end] = np.sin(2 * np.pi * freq * t_bit)
+
     return signal
 
 def afsk_to_text(signal, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_rate=48000):
@@ -25,5 +37,5 @@ def afsk_to_text(signal, baud_rate=1200, mark_freq=1200, space_freq=2200, sample
             bits += '1'
         else:
             bits += '0'
-    text = ''.join(chr(int(bits[i:i + 8], 2)) for i in range(0, len(bits), 8))
+    text = (''.join(chr(int(bits[i:i + 8], 2)) for i in range(0, len(bits), 8))).encode("utf-8")
     return text

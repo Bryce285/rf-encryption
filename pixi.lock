@@ -46,6 +46,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/readline-8.3-h853b02a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/reedsolo-1.7.0-py314h5bd0f2a_3.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/scipy-1.17.1-py314hf07bd8e_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/simpy-4.1.1-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_h366c992_103.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-3.10.0.0-pyhd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
@@ -561,6 +562,17 @@ packages:
   - pkg:pypi/scipy?source=compressed-mapping
   size: 17225275
   timestamp: 1771880751368
+- conda: https://conda.anaconda.org/conda-forge/noarch/simpy-4.1.1-pyhd8ed1ab_1.conda
+  sha256: eec4ca6d389bf8e6084fd457b75f9a14fe93469307ecc1b01ff4925ca4c2c81d
+  md5: fb53165ab0a126ea6f8bc98c0d787e0d
+  depends:
+  - python >=3.9
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/simpy?source=hash-mapping
+  size: 41753
+  timestamp: 1735074039447
 - pypi: https://files.pythonhosted.org/packages/1e/0a/478e441fd049002cf308520c0d62dd8333e7c6cc8d997f0dda07b9fbcc46/sounddevice-0.5.5-py3-none-any.whl
   name: sounddevice
   version: 0.5.5
