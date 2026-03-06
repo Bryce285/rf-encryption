@@ -1,43 +1,72 @@
-# Preamble/sync header insertion, error correction coding
+"""
+Framing module: packet construction, CRC verification, and Reed-Solomon
+error correction.
+
+Defines the binary wire format:
+    [PREAMBLE][SYNC][HEADER][PAYLOAD][CRC32]
+
+Also provides simple preamble helpers and ACK packet support.
+"""
 
 import struct
 import zlib
 import reedsolo
 
-# Reed-Solomon encoding and decoding
+
+# ---------------------------------------------------------------
+# Reed-Solomon helpers (string-level, used by reference.py style)
+# ---------------------------------------------------------------
+
 def encode_reed_solomon(data):
-    rs = reedsolo.RSCodec(10)  # Adds 10 bytes of Reed-Solomon error correction
+    """Encode *data* (str) with 10 bytes of Reed-Solomon ECC."""
+    rs = reedsolo.RSCodec(10)
     return rs.encode(data.encode('utf-8')).decode('latin1')
 
 def decode_reed_solomon(data):
+    """Decode a Reed-Solomon encoded string."""
     rs = reedsolo.RSCodec(10)
     return rs.decode(data.encode('latin1')).decode('utf-8')
 
-# Preamble functions
+
+# ---------------------------------------------------------------
+# Simple bit-string preamble helpers
+# ---------------------------------------------------------------
+
 def add_preamble(data, preamble="101010101010"):
+    """Prepend a bit-pattern preamble string to *data*."""
     return preamble + data
 
 def remove_preamble(data, preamble="101010101010"):
+    """Strip the leading preamble from *data*, raising if absent."""
     if data.startswith(preamble):
         return data[len(preamble):]
     else:
         raise ValueError("Preamble not found")
 
 
+# ---------------------------------------------------------------
+# Binary packet format constants
+# ---------------------------------------------------------------
 
-PREAMBLE = b'\x55' * 20
-SYNC = b'\xD3\x91'
-HEADER_FORMAT = "!BBHHHH"
-HEADER_SIZE = struct.calcsize("!BBHHHH")
-CRC_FORMAT = "!I"
-VERSION = 1
-TYPE_DATA = 0x01
+PREAMBLE = b'\x55' * 20          # 20-byte alternating-bit preamble for clock recovery
+SYNC     = b'\xD3\x91'            # 2-byte sync word marking start of header
+HEADER_FORMAT = "!BBHHHH"         # version, type, msg_id, seq, total, payload_len
+HEADER_SIZE   = struct.calcsize(HEADER_FORMAT)
+CRC_FORMAT    = "!I"              # unsigned 32-bit CRC
+VERSION       = 1
+TYPE_DATA     = 0x01
 
-ACK_FORMAT = "!BHH"
-ACK_SIZE = struct.calcsize("!BHH")
-TYPE_ACK = 0x02
+ACK_FORMAT = "!BHH"               # type, msg_id, seq
+ACK_SIZE   = struct.calcsize(ACK_FORMAT)
+TYPE_ACK   = 0x02
+
+
+# ---------------------------------------------------------------
+# Data packet construction / parsing
+# ---------------------------------------------------------------
 
 def build_packet(message_id, seq, total, payload: bytes):
+    """Build a framed data packet with CRC32 integrity check."""
     packet_type = TYPE_DATA
     payload_len = len(payload)
 
@@ -59,6 +88,7 @@ def build_packet(message_id, seq, total, payload: bytes):
     return packet
 
 def parse_packet(packet: bytes):
+    """Parse a framed data packet and verify its CRC.  Returns dict or None."""
     if not packet.startswith(PREAMBLE + SYNC):
         print("does not start with preamble and sync")
         return None
@@ -83,7 +113,7 @@ def parse_packet(packet: bytes):
         return None
     
     return {
-        "version:": version,
+        "version": version,
         "type": pkt_type,
         "message_id": msg_id,
         "seq": seq,
@@ -91,7 +121,12 @@ def parse_packet(packet: bytes):
         "payload": payload
     }
 
+# ---------------------------------------------------------------
+# ACK packet construction / parsing
+# ---------------------------------------------------------------
+
 def build_ack(msg_id, seq):
+    """Build a lightweight ACK packet (no CRC, no preamble)."""
     packet = struct.pack(
         ACK_FORMAT,
         TYPE_ACK,
@@ -102,6 +137,7 @@ def build_ack(msg_id, seq):
     return packet
 
 def parse_ack(packet: bytes):
+    """Parse an ACK packet.  Returns dict or None."""
     if len(packet) < ACK_SIZE:
         return None
     

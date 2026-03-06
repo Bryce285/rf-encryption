@@ -1,3 +1,12 @@
+"""
+RF Simulation Client: UDP-based radio node that communicates with the
+RF simulation server (sim_server.py).
+
+Handles node registration, channel switching, chunked signal transmission
+(large numpy arrays split into UDP-safe packets), and background
+listening / reassembly of incoming signals.
+"""
+
 import socket
 import json
 import threading
@@ -6,6 +15,7 @@ import math
 import numpy as np
 from collections import deque
 
+# Maximum bytes of base64-encoded payload per UDP datagram
 MAX_UDP_PAYLOAD = 1400
 
 class RadioClient:

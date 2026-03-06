@@ -1,5 +1,10 @@
 """
-Key derivation and encryption/decryption for AES and RSA
+Crypto module: key derivation, encryption, and decryption for AES-GCM
+and RSA-OAEP.
+
+AES keys are wrapped with a passphrase-derived KEK (Argon2id) and stored
+in ``aes.key``.  RSA private keys are stored PEM-encrypted in
+``rsa_private.key``.
 """
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -253,7 +258,7 @@ def main():
     print(f"AES ciphertext: {ciphertext.hex()}")
 
     decrypted_plaintext = Symmetric.decrypt_aes(ciphertext, key, nonce)
-    print(f"Decrypted AES plaintext: {decrypted_plaintext.decode("utf-8")}")
+    print(f"Decrypted AES plaintext: {decrypted_plaintext.decode('utf-8')}")
 
 
 
@@ -270,7 +275,7 @@ def main():
     print(f"RSA ciphertext: {ciphertext.hex()}")
 
     decrypted_plaintext = Asymmetric.decrypt_rsa(ciphertext, private_key)
-    print(f"Decrypted RSA plaintext: {decrypted_plaintext.decode("utf-8")}")
+    print(f"Decrypted RSA plaintext: {decrypted_plaintext.decode('utf-8')}")
     
 
 

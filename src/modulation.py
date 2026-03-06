@@ -1,8 +1,28 @@
-# covert bytes into two-tone audio, demodulate back to bits, multi-tone audio encoding
+"""
+Modulation module: AFSK (Audio Frequency-Shift Keying) encoding / decoding.
+
+Converts raw bytes into a two-tone audio waveform (mark / space frequencies)
+and demodulates the waveform back to bytes using FFT peak detection.
+"""
 
 import numpy as np
 
+# Default parameters
+#   baud_rate  : symbol rate in bits/s
+#   mark_freq  : frequency representing a '1' bit (Hz)
+#   space_freq : frequency representing a '0' bit (Hz)
+#   sample_rate: audio samples per second
+
+
 def text_to_afsk(data, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_rate=48000):
+    """
+    Modulate *data* (bytes or str) into an AFSK audio signal.
+
+    Each byte is expanded to 8 bits; each bit becomes a burst of
+    sine-wave at either *mark_freq* (1) or *space_freq* (0).
+
+    Returns a numpy float64 array of audio samples.
+    """
     if isinstance(data, str):
         data = data.encode()
 
@@ -23,7 +43,14 @@ def text_to_afsk(data, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_r
     return signal
 
 def afsk_to_text(signal, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_rate=48000):
+    """
+    Demodulate an AFSK audio signal back into raw bytes.
 
+    Splits the signal into per-bit windows, runs an FFT on each
+    window, and classifies the dominant peak as mark or space.
+
+    Returns a bytes object.
+    """
     samples_per_bit = int(sample_rate / baud_rate)
     num_bits = len(signal) // samples_per_bit
 

@@ -1,43 +1,85 @@
+"""
+Interface module: abstracts audio I/O and simulated RF transmission.
+Handles sending/receiving audio signals via physical speakers or the
+RF simulation server.
+"""
+
 import numpy as np
 import numpy.typing as npt
 import rfsim_client
 import sounddevice as sd
 
-class Interface:
-    def __init__(self, id: str, SIMULATED: bool, speakerID: int):
-        self.sim_client = rfsim_client.RadioClient(id, (0,0))
-        self.SIMULATED = SIMULATED
-        self.speakerID = speakerID
+# Default audio sample rate used for playback and recording
+SAMPLE_RATE = 48000
 
-    def send(self, msg: npt.NDArray[np.float64], channel: str):
-        devices = sd.query_devices()
-        output_devices = [d for d in devices if d['max_output_channels'] > 0]
-        
+
+class Interface:
+    """
+    Unified send/receive interface that routes audio through either
+    a real sounddevice speaker or the simulated RF channel.
+
+    Parameters:
+        node_id:    unique identifier for this radio node
+        simulated:  if True, also relay through the RF sim server
+        speaker_idx: the *original* sounddevice device index for the
+                     desired output device (not a filtered-list index)
+    """
+
+    def __init__(self, node_id: str, simulated: bool, speaker_idx: int):
+        self.SIMULATED = simulated
+        self.speaker_idx = speaker_idx  # original sd.query_devices() index
+
+        # Only connect to the simulation server when running in simulated mode
         if self.SIMULATED:
-            try:
-                sd.play(msg, samplerate=48000, device=output_devices[self.speakerID])
-            except Exception as e:
-                print(f"Error during transmission: {e}")
+            self.sim_client = rfsim_client.RadioClient(node_id, (0, 0))
+        else:
+            self.sim_client = None
+
+    # ------------------------------------------------------------------
+    # Transmit
+    # ------------------------------------------------------------------
+    def send(self, msg: npt.NDArray[np.float64], channel: str):
+        """
+        Transmit an audio signal.
+
+        In simulated mode the signal is both played on the local speaker
+        and forwarded to the sim server.  In real mode only local playback
+        is performed.
+
+        Parameters:
+            msg:     numpy array of audio samples (float64)
+            channel: RF channel identifier (used by the sim server)
+        """
+        # Play the audio on the selected output device
+        try:
+            sd.play(msg, samplerate=SAMPLE_RATE, device=self.speaker_idx)
+            sd.wait()
+        except Exception as e:
+            print(f"Error during audio playback: {e}")
+
+        # Forward to the simulation server when in simulated mode
+        if self.SIMULATED and self.sim_client is not None:
             self.sim_client.channel = channel
             self.sim_client.send(msg)
-        else:
-            try:
-                sd.play(msg, samplerate=48000, device=output_devices[self.speakerID])
-            except Exception as e:
-                print(f"Error during transmission: {e}")
 
-    def receive(self) -> npt.NDArray[np.float64]:
-        devices = sd.query_devices()
-        output_devices = [d for d in devices if d['max_output_channels'] > 0]
-        
-        if self.SIMULATED and self.sim_client.inbox:
-            try:
-                sd.play(self.sim_client.inbox.popleft(), samplerate=48000, device=output_devices[self.speakerID])
-            except Exception as e:
-                print(f"Error processing message: {e}")
-            return self.sim_client.inbox.popleft()
+    # ------------------------------------------------------------------
+    # Receive
+    # ------------------------------------------------------------------
+    def receive(self) -> npt.NDArray[np.float64] | None:
+        """
+        Receive the next available audio signal.
+
+        In simulated mode this pops the oldest message from the sim
+        server inbox.  Returns None when no message is available.
+
+        NOTE: Real (non-simulated) receive is not yet implemented —
+              it would require recording from an input device.
+        """
+        if self.SIMULATED and self.sim_client is not None:
+            if self.sim_client.inbox:
+                # Pop exactly once and return the signal
+                return self.sim_client.inbox.popleft()
+            return None
         else:
-            try:
-                sd.play(self.sim_client.inbox.popleft(), samplerate=48000, device=output_devices[self.speakerID])
-            except Exception as e:
-                print(f"Error processing message: {e}")
+            # TODO: implement real microphone recording for non-simulated rx
+            return None
