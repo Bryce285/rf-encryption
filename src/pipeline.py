@@ -13,9 +13,11 @@ import cli
 import crypto
 import modulation
 import threading
+import time
 import framing
 from interface import Interface
 import protocol
+from cryptography.hazmat.primitives import serialization
 
 # Number of retransmission attempts before giving up on a packet
 MAX_RETRIES = 3
@@ -66,6 +68,16 @@ class Cli:
 
             # Demodulate AFSK audio back into raw bytes
             demodulated = modulation.afsk_to_text(rx_msg)
+
+            # --- Handle out-of-band PUBKEY exchange messages ---
+            if demodulated.startswith(b"PUBKEY:"):
+                pem_data = demodulated[len(b"PUBKEY:"):]
+                try:
+                    self.receiver_pub_key = serialization.load_pem_public_key(pem_data)
+                    print("Received remote peer's public key (via rx thread).")
+                except Exception as e:
+                    print(f"Failed to parse received public key: {e}")
+                continue
 
             print("RX:", demodulated[:24])
 
@@ -124,14 +136,42 @@ class Cli:
             self.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)
         else:
             self.rsa_priv, self.rsa_pub = crypto.Asymmetric.load_or_generate_key_pair(passphrase)
-            # TODO — exchange public keys with the receiver
+
+            # --- RSA public-key exchange over the simulated channel ---
+            # Serialize our public key to PEM bytes and broadcast it.
+            pub_pem = self.rsa_pub.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+            # Send a special "PUBKEY" framed message so the receiver can
+            # parse it out of band.
+            key_payload = b"PUBKEY:" + pub_pem
+            key_signal = modulation.text_to_afsk(key_payload)
+            self.interface.send(key_signal, self.channel)
+            print("Public key broadcast sent.")
+
+            # Wait for the remote peer's public key to arrive
+            print("Waiting for remote peer's public key...")
+            while not hasattr(self, 'receiver_pub_key') or self.receiver_pub_key is None:
+                self.receiver_pub_key = None  # ensure attribute exists
+                rx = self.interface.receive()
+                if rx is None:
+                    time.sleep(0.2)
+                    continue
+                raw = modulation.afsk_to_text(rx)
+                if raw.startswith(b"PUBKEY:"):
+                    pem_data = raw[len(b"PUBKEY:"):]
+                    self.receiver_pub_key = serialization.load_pem_public_key(pem_data)
+                    print("Received remote peer's public key.")
+                    break
+                time.sleep(0.1)
 
         # Start background receive thread
         threading.Thread(target=self.receive_signal, args=(cipher,), daemon=True).start()
 
         # --- Send loop ---
+        packetizer = protocol.Packetizer()
         while True:
-            packetizer = protocol.Packetizer()
             msg = cli.get_msg(self.channel, cipher)
 
             # --- Handle system commands (e.g. \SYSCMD channel=ch2) ---
@@ -182,11 +222,33 @@ class Cli:
                         break
 
             else:
-                # RSA: encrypt and send (TODO — add packetisation + ACK)
+                # RSA: encrypt, packetize with ACK, modulate, and send
                 ciphertext = crypto.Asymmetric.encrypt_rsa(msg, self.receiver_pub_key)
 
-                signal = modulation.text_to_afsk(ciphertext)
-                self.interface.send(signal, self.channel)
+                packets = packetizer.get_packets(ciphertext)
+
+                for seq, packet in enumerate(packets):
+                    retries = 0
+
+                    while retries < MAX_RETRIES:
+                        print(f"TX (RSA): packet {seq} ({len(packet)} bytes)")
+
+                        signal = modulation.text_to_afsk(packet)
+                        print("TX samples:", len(signal))
+
+                        self.interface.send(signal, self.channel)
+
+                        self.ack_event.clear()
+                        if self.ack_event.wait(timeout=1.0):
+                            if self.last_ack_seq == seq:
+                                break
+                        else:
+                            retries += 1
+                            print(f"Retrying packet {seq} (attempt {retries}/{MAX_RETRIES})")
+
+                    if retries == MAX_RETRIES:
+                        print(f"Failed to send packet {seq}, aborting message")
+                        break
 
 
 def orchestrateGui():

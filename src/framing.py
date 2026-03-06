@@ -10,38 +10,6 @@ Also provides simple preamble helpers and ACK packet support.
 
 import struct
 import zlib
-import reedsolo
-
-
-# ---------------------------------------------------------------
-# Reed-Solomon helpers (string-level, used by reference.py style)
-# ---------------------------------------------------------------
-
-def encode_reed_solomon(data):
-    """Encode *data* (str) with 10 bytes of Reed-Solomon ECC."""
-    rs = reedsolo.RSCodec(10)
-    return rs.encode(data.encode('utf-8')).decode('latin1')
-
-def decode_reed_solomon(data):
-    """Decode a Reed-Solomon encoded string."""
-    rs = reedsolo.RSCodec(10)
-    return rs.decode(data.encode('latin1')).decode('utf-8')
-
-
-# ---------------------------------------------------------------
-# Simple bit-string preamble helpers
-# ---------------------------------------------------------------
-
-def add_preamble(data, preamble="101010101010"):
-    """Prepend a bit-pattern preamble string to *data*."""
-    return preamble + data
-
-def remove_preamble(data, preamble="101010101010"):
-    """Strip the leading preamble from *data*, raising if absent."""
-    if data.startswith(preamble):
-        return data[len(preamble):]
-    else:
-        raise ValueError("Preamble not found")
 
 
 # ---------------------------------------------------------------

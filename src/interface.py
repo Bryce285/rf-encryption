@@ -81,5 +81,24 @@ class Interface:
                 return self.sim_client.inbox.popleft()
             return None
         else:
-            # TODO: implement real microphone recording for non-simulated rx
-            return None
+            # Record a short clip from the default input device and return
+            # it if it contains audible signal (above the silence threshold).
+            try:
+                recording = sd.rec(
+                    int(RECORD_DURATION * SAMPLE_RATE),
+                    samplerate=SAMPLE_RATE,
+                    channels=1,
+                    dtype='float64',
+                    device=None,       # use default input device
+                )
+                sd.wait()
+                signal = recording.flatten()
+
+                # Discard silent recordings to avoid feeding noise downstream
+                rms = np.sqrt(np.mean(signal ** 2))
+                if rms < SILENCE_THRESHOLD:
+                    return None
+                return signal
+            except Exception as e:
+                print(f"Error recording from microphone: {e}")
+                return None

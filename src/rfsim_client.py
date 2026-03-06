@@ -21,7 +21,7 @@ MAX_UDP_PAYLOAD = 1400
 class RadioClient:
     def __init__(self, node_id, position=(0,0),
                  server_addr=("localhost", 5000),
-                 local_port=5002, # THIS NEEDS TO BE UNIQUE FOR EACH CLIENT
+                 local_port=0,
                  channel="ch1"):
 
         self.node_id = node_id
@@ -32,7 +32,11 @@ class RadioClient:
         self.partial_signals = {}
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # Bind to port 0 so the OS assigns a free ephemeral port.
+        # This allows multiple clients on the same machine without conflicts.
         self.sock.bind(("localhost", local_port))
+        actual_port = self.sock.getsockname()[1]
+        print(f"RadioClient '{node_id}' bound to port {actual_port}")
 
         self.register()
 

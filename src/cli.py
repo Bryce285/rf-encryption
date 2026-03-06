@@ -42,8 +42,6 @@ def parse_cmd(cmd: str) -> tuple[str, str]:
     field = ""
     value = ""
 
-    # TODO - add system command for encryption type
-
     if cmd.startswith("channel="):
         field = "channel"
         # Extract the value after the '=' (no off-by-one trim)
@@ -51,6 +49,14 @@ def parse_cmd(cmd: str) -> tuple[str, str]:
 
         # Validate: must look like "ch<digits>"
         if value_tmp.startswith("ch") and value_tmp[2:].isdigit():
+            value = value_tmp
+
+    elif cmd.startswith("cipher="):
+        field = "cipher"
+        value_tmp = cmd[len("cipher="):]
+
+        # Validate: must be one of the supported cipher names
+        if value_tmp in ("aes", "rsa"):
             value = value_tmp
 
     return field, value

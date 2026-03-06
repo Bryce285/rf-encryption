@@ -28,27 +28,30 @@ class Symmetric:
     AESGCM_NONCE_LEN = 12
     GCM_TAG_LEN = 16
 
-    """
-    Checks if an AES key file exists and either loads the key from that file
-    or generates a new key and writes it to a file.
+    @staticmethod
+    def _derive_kek(passphrase: str, salt: bytes) -> bytes:
+        """Derive a key-encryption-key from the user's passphrase via Argon2id."""
+        return hash_secret_raw(
+            secret=passphrase.encode(),
+            salt=salt,
+            time_cost=3,
+            memory_cost=65536,
+            parallelism=2,
+            hash_len=32,
+            type=Type.ID
+        )
 
-    Parameters: the user's passphrase
-    Returns: data encryption key on success, nothing on failure
-    """
     @staticmethod
     def load_or_generate_key(passphrase: str) -> bytes:
+        """Load an existing AES DEK from *aes.key*, or generate and persist a new one."""
         dek = b""
-    
-        if Path("aes.key").exists() and Path("aes.key").is_file():
-            salt = b""
-            nonce = b""
-            ciphertext = b""
 
+        if Path("aes.key").exists() and Path("aes.key").is_file():
             try:
-                with open("aes.key", "rb") as aes_key_file:
-                    salt = aes_key_file.read(Symmetric.AESGCM_SALT_LEN)
-                    nonce = aes_key_file.read(Symmetric.AESGCM_NONCE_LEN)
-                    ciphertext = aes_key_file.read(Symmetric.GCM_TAG_LEN + Symmetric.AESGCM_DEK_LEN)
+                with open("aes.key", "rb") as f:
+                    salt = f.read(Symmetric.AESGCM_SALT_LEN)
+                    nonce = f.read(Symmetric.AESGCM_NONCE_LEN)
+                    ciphertext = f.read(Symmetric.GCM_TAG_LEN + Symmetric.AESGCM_DEK_LEN)
             except FileNotFoundError:
                 print("aes.key file not found")
                 return
@@ -56,45 +59,26 @@ class Symmetric:
                 print("Failed to read AES key from aes.key")
                 return
 
-            kek = hash_secret_raw(
-                secret=passphrase.encode(),
-                salt=salt,
-                time_cost=3,
-                memory_cost=65536,
-                parallelism=2,
-                hash_len=32,
-                type=Type.ID
-            )
-
-            aesgcm = AESGCM(kek)
-            dek = aesgcm.decrypt(nonce, ciphertext, None)
+            kek = Symmetric._derive_kek(passphrase, salt)
+            dek = AESGCM(kek).decrypt(nonce, ciphertext, None)
 
         else:
             dek = os.urandom(Symmetric.AESGCM_DEK_LEN)
             salt = os.urandom(Symmetric.AESGCM_SALT_LEN)
-            kek = hash_secret_raw(
-                secret=passphrase.encode(),
-                salt=salt,
-                time_cost=3,
-                memory_cost=65536,
-                parallelism=2,
-                hash_len=32,
-                type=Type.ID
-            )
+            kek = Symmetric._derive_kek(passphrase, salt)
 
-            aesgcm = AESGCM(kek)
             nonce = os.urandom(Symmetric.AESGCM_NONCE_LEN)
-            ciphertext = aesgcm.encrypt(nonce, dek, None)
-            
+            ciphertext = AESGCM(kek).encrypt(nonce, dek, None)
+
             try:
-                with open("aes.key", "wb") as aes_key_file:
-                    aes_key_file.write(salt)
-                    aes_key_file.write(nonce)
-                    aes_key_file.write(ciphertext)
+                with open("aes.key", "wb") as f:
+                    f.write(salt)
+                    f.write(nonce)
+                    f.write(ciphertext)
             except OSError:
                 print("Failed to write encrypted blob to aes.key")
                 return
-            
+
         return dek
 
     """
@@ -149,6 +133,13 @@ class Symmetric:
 For RSA asymmetric encryption
 """
 class Asymmetric:
+    # Shared OAEP padding configuration for encrypt / decrypt
+    _OAEP_PADDING = padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+    )
+
     """
     Checks if an RSA private key file exists and either loads the key from that file
     or generates a new key and writes it to a file. The RSA public key is then derived from
@@ -207,16 +198,7 @@ class Asymmetric:
     """
     @staticmethod
     def encrypt_rsa(plaintext: bytes, public_key: rsa.RSAPublicKey) -> bytes:
-        ciphertext = public_key.encrypt(
-            plaintext,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-
-        return ciphertext
+        return public_key.encrypt(plaintext, Asymmetric._OAEP_PADDING)
     
     """
     Decrypts the given ciphertext using RSA
@@ -226,16 +208,7 @@ class Asymmetric:
     """
     @staticmethod
     def decrypt_rsa(ciphertext: bytes, private_key: rsa.RSAPrivateKey) -> bytes:
-        plaintext = private_key.decrypt(
-            ciphertext,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-
-        return plaintext
+        return private_key.decrypt(ciphertext, Asymmetric._OAEP_PADDING)
 
 """
 Main function for testing
