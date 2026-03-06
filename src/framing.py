@@ -33,8 +33,8 @@ CRC_FORMAT = "!I"
 VERSION = 1
 TYPE_DATA = 0x01
 
-ACK_FORMAT = "!BHHH"
-ACK_SIZE = struct.calcsize("!BHHH")
+ACK_FORMAT = "!BHH"
+ACK_SIZE = struct.calcsize("!BHH")
 TYPE_ACK = 0x02
 
 def build_packet(message_id, seq, total, payload: bytes):
@@ -60,6 +60,7 @@ def build_packet(message_id, seq, total, payload: bytes):
 
 def parse_packet(packet: bytes):
     if not packet.startswith(PREAMBLE + SYNC):
+        print("does not start with preamble and sync")
         return None
     
     offset = len(PREAMBLE) + len(SYNC)
@@ -71,13 +72,14 @@ def parse_packet(packet: bytes):
         struct.unpack(HEADER_FORMAT, header)
     
     payload = packet[offset:offset + payload_len]
-    offest += payload_len
+    offset += payload_len
 
     received_crc = struct.unpack("!I", packet[offset:offset+4])[0]
 
     computed_crc = zlib.crc32(header + payload) & 0xffffffff
 
     if received_crc != computed_crc:
+        print("crc does not match")
         return None
     
     return {
@@ -101,6 +103,9 @@ def build_ack(msg_id, seq):
 
 def parse_ack(packet: bytes):
     if len(packet) < ACK_SIZE:
+        return None
+    
+    if len(packet) > ACK_SIZE:
         return None
 
     pkt_type, msg_id, seq = struct.unpack(ACK_FORMAT, packet[:ACK_SIZE])

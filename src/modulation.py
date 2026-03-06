@@ -23,17 +23,31 @@ def text_to_afsk(data, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_r
     return signal
 
 def afsk_to_text(signal, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_rate=48000):
-    bit_duration = 1 / baud_rate
-    num_bits = int(len(signal) / (bit_duration * sample_rate))
-    bits = ''
+
+    samples_per_bit = int(sample_rate / baud_rate)
+    num_bits = len(signal) // samples_per_bit
+
+    bits = ""
+
     for i in range(num_bits):
-        chunk = signal[i * int(bit_duration * sample_rate):(i + 1) * int(bit_duration * sample_rate)]
-        freq = np.fft.fftfreq(len(chunk), 1 / sample_rate)
+
+        start = i * samples_per_bit
+        end = start + samples_per_bit
+        chunk = signal[start:end]
+
         fft = np.abs(np.fft.fft(chunk))
-        peak_freq = freq[np.argmax(fft)]
+        freq = np.fft.fftfreq(len(chunk), 1 / sample_rate)
+
+        peak_freq = abs(freq[np.argmax(fft)])
+
         if abs(peak_freq - mark_freq) < abs(peak_freq - space_freq):
-            bits += '1'
+            bits += "1"
         else:
-            bits += '0'
-    text = (''.join(chr(int(bits[i:i + 8], 2)) for i in range(0, len(bits), 8))).encode("utf-8")
-    return text
+            bits += "0"
+
+    data = bytes(
+        int(bits[i:i+8], 2)
+        for i in range(0, len(bits) - 7, 8)
+    )
+
+    return data

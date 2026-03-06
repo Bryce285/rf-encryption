@@ -8,8 +8,6 @@ import framing
 from interface import Interface
 import protocol
 
-# TODO - need to chunk the data when we send it and have a reassembly protocol when we receive
-
 MAX_RETRIES = 3
 
 class Cli:
@@ -34,28 +32,43 @@ class Cli:
             rx_msg = self.interface.receive()
             if rx_msg is None or rx_msg.size == 0:
                 continue
+            
+            print("signal received from interface")
+            print("RX samples:", len(rx_msg))
 
             demodulated = modulation.afsk_to_text(rx_msg)
             
+            print("RX:", demodulated[:24])
+            
             ack_seq = framing.parse_ack(demodulated)
             if ack_seq is not None:
-                self.last_ack_seq = ack_seq
+                self.last_ack_seq = ack_seq["seq"]
                 self.ack_event.set()
+                print("ACK event set")
                 continue
 
             parsed = framing.parse_packet(demodulated)
             if parsed is not None:
+                
+                print("Packet has been parsed")
+                
                 msg_id = parsed.get("message_id")
                 seq = parsed.get("seq")
                 total = parsed.get("total")
                 payload = parsed.get("payload")
 
+                ack_packet = framing.build_ack(msg_id, seq)
+                ack_signal = modulation.text_to_afsk(ack_packet)
+                self.interface.send(ack_signal, self.channel)
+
                 assembled = reassembler.add_packet(msg_id, seq, total, payload)
                 if assembled is not None:
 
+                    print("Packet assembled")
+
                     if cipher == "aes":
                         nonce = assembled[:crypto.Symmetric.AESGCM_NONCE_LEN]
-                        ciphertext = assembled[crypto.Symmetric.AESGCM_NONCE_LEN]
+                        ciphertext = assembled[crypto.Symmetric.AESGCM_NONCE_LEN:]
                         plaintext = crypto.Symmetric.decrypt_aes(ciphertext, self.aes_dek, nonce)
                     else:
                         plaintext = crypto.Asymmetric.decrypt_rsa(assembled, self.rsa_priv)
@@ -104,7 +117,12 @@ class Cli:
                     retries = 0
 
                     while retries < MAX_RETRIES:
-                        signal  = modulation.text_to_afsk(packet)
+                        print("TX:", packet[:24])
+
+                        signal = modulation.text_to_afsk(packet)
+
+                        print("TX samples:", len(signal))
+
                         self.interface.send(signal, self.channel)
 
                         self.ack_event.clear()

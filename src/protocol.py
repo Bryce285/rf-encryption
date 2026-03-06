@@ -14,7 +14,7 @@ class Packetizer:
             num_packets += 1
         
         chunks = []
-        for i in range(num_packets):
+        for i in range(int(num_packets)):
             offset = i * PAYLOAD_SIZE
 
             if len(msg) >= offset + PAYLOAD_SIZE:

@@ -26,10 +26,10 @@ class RadioSimServer:
         # }
 
         # Simulation parameters
-        self.packet_loss = 0.05
-        self.latency = 0.05
-        self.max_range = 100
-        self.data_rate = 1000.0  # bytes per second
+        self.packet_loss = 0.00
+        self.latency = 0.00
+        self.max_range = 1000
+        self.data_rate = 10000.0  # bytes per second
 
     # ============================
     # Server Main Loop
@@ -177,7 +177,9 @@ class RadioSimServer:
             packet = json.dumps({
                 "type": "receive",
                 "from": sender_id,
-                "payload": payload
+                "payload": msg.get("payload"),
+                "chunk_index": msg.get("chunk_index"),
+                "num_chunks": msg.get("num_chunks")
             }).encode()
 
             self.sock.sendto(packet, node["addr"])
