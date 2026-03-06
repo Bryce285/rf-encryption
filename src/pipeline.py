@@ -11,8 +11,8 @@ import protocol
 MAX_RETRIES = 3
 
 class Cli:
-    def __init__(self, id: str, simulated: bool):
-        self.interface = Interface(id, simulated)
+    def __init__(self, id: str, simulated: bool, speakerID: int):
+        self.interface = Interface(id, simulated, speakerID)
         self.id = id
         self.simulated = simulated
         self.aes_dek: bytes
@@ -72,7 +72,7 @@ class Cli:
                         plaintext = crypto.Symmetric.decrypt_aes(ciphertext, self.aes_dek, nonce)
                     else:
                         plaintext = crypto.Asymmetric.decrypt_rsa(assembled, self.rsa_priv)
-            
+
                     cli.print_msg(self.channel, cipher, plaintext)
 
     def orchestrateCli(self, cipher: str):
