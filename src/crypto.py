@@ -17,8 +17,8 @@ from typing import Tuple
 import os
 
 # Default key file paths
-AES_KEY_PATH = Path("aes.key")
-RSA_KEY_PATH = Path("rsa_private.key")
+AES_KEY_PATH = Path("../keys/aes.key")
+RSA_KEY_PATH = Path("../keys/rsa_private.key")
 
 
 class Symmetric:
