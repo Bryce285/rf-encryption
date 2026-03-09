@@ -27,20 +27,16 @@ def text_to_afsk(data, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_r
         data = data.encode()
 
     bits = ''.join(format(byte, '08b') for byte in data)
-
-    bit_duration = 1 / baud_rate
-    samples_per_bit = int(bit_duration * sample_rate)
-
+    samples_per_bit = int(sample_rate / baud_rate)
     t_bit = np.arange(samples_per_bit) / sample_rate
-    signal = np.zeros(len(bits) * samples_per_bit)
 
-    for i, bit in enumerate(bits):
-        freq = mark_freq if bit == '1' else space_freq
-        start = i * samples_per_bit
-        end = (i + 1) * samples_per_bit
-        signal[start:end] = np.sin(2 * np.pi * freq * t_bit)
+    # Build a frequency array: one freq value per bit
+    freqs = np.array([mark_freq if b == '1' else space_freq for b in bits])
 
-    return signal
+    # Tile time-base for every bit and compute sine in one shot
+    t_all = np.tile(t_bit, len(bits))
+    freq_all = np.repeat(freqs, samples_per_bit)
+    return np.sin(2 * np.pi * freq_all * t_all)
 
 def afsk_to_text(signal, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_rate=48000):
     """
@@ -54,27 +50,16 @@ def afsk_to_text(signal, baud_rate=1200, mark_freq=1200, space_freq=2200, sample
     samples_per_bit = int(sample_rate / baud_rate)
     num_bits = len(signal) // samples_per_bit
 
-    bits = ""
-
+    bits = []
     for i in range(num_bits):
+        chunk = signal[i * samples_per_bit:(i + 1) * samples_per_bit]
+        fft_mag = np.abs(np.fft.fft(chunk))
+        freqs = np.fft.fftfreq(len(chunk), 1 / sample_rate)
+        peak = abs(freqs[np.argmax(fft_mag)])
+        bits.append('1' if abs(peak - mark_freq) < abs(peak - space_freq) else '0')
 
-        start = i * samples_per_bit
-        end = start + samples_per_bit
-        chunk = signal[start:end]
-
-        fft = np.abs(np.fft.fft(chunk))
-        freq = np.fft.fftfreq(len(chunk), 1 / sample_rate)
-
-        peak_freq = abs(freq[np.argmax(fft)])
-
-        if abs(peak_freq - mark_freq) < abs(peak_freq - space_freq):
-            bits += "1"
-        else:
-            bits += "0"
-
-    data = bytes(
-        int(bits[i:i+8], 2)
-        for i in range(0, len(bits) - 7, 8)
+    bitstring = ''.join(bits)
+    return bytes(
+        int(bitstring[i:i + 8], 2)
+        for i in range(0, len(bitstring) - 7, 8)
     )
-
-    return data

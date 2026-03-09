@@ -11,13 +11,15 @@ GUI path:
 
 import cli
 import crypto
+import framing
 import modulation
+import protocol
 import threading
 import time
-import framing
-from interface import Interface
-import protocol
+from typing import Optional
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from interface import Interface
 
 # Number of retransmission attempts before giving up on a packet
 MAX_RETRIES = 3
@@ -37,16 +39,35 @@ class Cli:
         self.simulated = simulated
 
         # Crypto material (assigned during orchestrateCli)
-        self.aes_dek: bytes
-        self.rsa_priv: bytes
-        self.rsa_pub: bytes
-        self.receiver_pub_key: bytes
+        self.aes_dek: bytes = b""
+        self.rsa_priv: Optional[rsa.RSAPrivateKey] = None
+        self.rsa_pub: Optional[rsa.RSAPublicKey] = None
+        self.receiver_pub_key: Optional[rsa.RSAPublicKey] = None
 
         self.channel = "ch1"  # current RF channel
 
         # ACK synchronisation between rx-thread and tx-loop
         self.ack_event = threading.Event()
         self.last_ack_seq = -1
+
+    # ------------------------------------------------------------------
+    # Transmit helpers
+    # ------------------------------------------------------------------
+    def _send_with_ack(self, packets: list):
+        """Modulate, transmit, and wait for per-packet ACKs with retries."""
+        for seq, packet in enumerate(packets):
+            for attempt in range(1, MAX_RETRIES + 1):
+                signal = modulation.text_to_afsk(packet)
+                print(f"TX: packet {seq} ({len(packet)} B, {len(signal)} samples)")
+                self.interface.send(signal, self.channel)
+
+                self.ack_event.clear()
+                if self.ack_event.wait(timeout=1.0) and self.last_ack_seq == seq:
+                    break
+                print(f"Retrying packet {seq} (attempt {attempt}/{MAX_RETRIES})")
+            else:
+                print(f"Failed to send packet {seq}, aborting message")
+                return
 
     # ------------------------------------------------------------------
     # Background receiver
@@ -187,68 +208,15 @@ class Cli:
                 continue
 
             # --- Encrypt and transmit ---
-            msg = msg.encode("utf-8")
+            msg_bytes = msg.encode("utf-8")
 
             if cipher == "aes":
-                # AES: prepend nonce to ciphertext, packetize, modulate, send
-                nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg, self.aes_dek)
-
-                tx_msg = (nonce + ciphertext)
-                packets = packetizer.get_packets(tx_msg)
-
-                for seq, packet in enumerate(packets):
-                    retries = 0
-
-                    while retries < MAX_RETRIES:
-                        print(f"TX: packet {seq} ({len(packet)} bytes)")
-
-                        # Modulate the packet into an AFSK audio signal
-                        signal = modulation.text_to_afsk(packet)
-                        print("TX samples:", len(signal))
-
-                        self.interface.send(signal, self.channel)
-
-                        # Wait for an ACK from the receiver
-                        self.ack_event.clear()
-                        if self.ack_event.wait(timeout=1.0):
-                            if self.last_ack_seq == seq:
-                                break
-                        else:
-                            retries += 1
-                            print(f"Retrying packet {seq} (attempt {retries}/{MAX_RETRIES})")
-
-                    if retries == MAX_RETRIES:
-                        print(f"Failed to send packet {seq}, aborting message")
-                        break
-
+                nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg_bytes, self.aes_dek)
+                tx_payload = nonce + ciphertext
             else:
-                # RSA: encrypt, packetize with ACK, modulate, and send
-                ciphertext = crypto.Asymmetric.encrypt_rsa(msg, self.receiver_pub_key)
+                tx_payload = crypto.Asymmetric.encrypt_rsa(msg_bytes, self.receiver_pub_key)
 
-                packets = packetizer.get_packets(ciphertext)
-
-                for seq, packet in enumerate(packets):
-                    retries = 0
-
-                    while retries < MAX_RETRIES:
-                        print(f"TX (RSA): packet {seq} ({len(packet)} bytes)")
-
-                        signal = modulation.text_to_afsk(packet)
-                        print("TX samples:", len(signal))
-
-                        self.interface.send(signal, self.channel)
-
-                        self.ack_event.clear()
-                        if self.ack_event.wait(timeout=1.0):
-                            if self.last_ack_seq == seq:
-                                break
-                        else:
-                            retries += 1
-                            print(f"Retrying packet {seq} (attempt {retries}/{MAX_RETRIES})")
-
-                    if retries == MAX_RETRIES:
-                        print(f"Failed to send packet {seq}, aborting message")
-                        break
+            self._send_with_ack(packetizer.get_packets(tx_payload))
 
 
 def orchestrateGui():

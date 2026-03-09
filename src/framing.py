@@ -106,10 +106,7 @@ def build_ack(msg_id, seq):
 
 def parse_ack(packet: bytes):
     """Parse an ACK packet.  Returns dict or None."""
-    if len(packet) < ACK_SIZE:
-        return None
-    
-    if len(packet) > ACK_SIZE:
+    if len(packet) != ACK_SIZE:
         return None
 
     pkt_type, msg_id, seq = struct.unpack(ACK_FORMAT, packet[:ACK_SIZE])

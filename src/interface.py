@@ -11,6 +11,10 @@ import sounddevice as sd
 
 # Default audio sample rate used for playback and recording
 SAMPLE_RATE = 48000
+# Duration (seconds) of each recording attempt when using real audio input
+RECORD_DURATION = 1.0
+# RMS below this threshold is treated as silence (no useful signal)
+SILENCE_THRESHOLD = 0.01
 
 
 class Interface:

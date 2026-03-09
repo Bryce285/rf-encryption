@@ -28,23 +28,14 @@ class Packetizer:
 
         Returns a list of raw packet byte-strings ready for modulation.
         """
-        # Calculate how many chunks we need (ceiling division)
         num_packets = math.ceil(len(msg) / PAYLOAD_SIZE)
+        chunks = [msg[i * PAYLOAD_SIZE:(i + 1) * PAYLOAD_SIZE] for i in range(num_packets)]
 
-        # Split the message into chunks
-        chunks = []
-        for i in range(num_packets):
-            offset = i * PAYLOAD_SIZE
-            chunks.append(msg[offset:offset + PAYLOAD_SIZE])
-
-        # Build framed packets for each chunk
-        msg_id = self.last_id + 1
-        packets = []
-        for i, chunk in enumerate(chunks):
-            packets.append(framing.build_packet(msg_id, i, num_packets, chunk))
-
-        self.last_id = msg_id
-        return packets
+        self.last_id += 1
+        return [
+            framing.build_packet(self.last_id, i, num_packets, chunk)
+            for i, chunk in enumerate(chunks)
+        ]
 
 
 class Reassembler:
@@ -61,15 +52,13 @@ class Reassembler:
 
     def clear_timeouts(self):
         """Remove partially-assembled messages that have exceeded MSG_TIMEOUT."""
-        to_delete = []
-
-        for msg_id, msg_info in self.messages.items():
-            # Compare timedelta with timedelta (not datetime with int)
-            if (datetime.now() - msg_info["start_time"]) > timedelta(seconds=MSG_TIMEOUT):
-                to_delete.append(msg_id)
-
-        for msg_id in to_delete:
-            self.messages.pop(msg_id, None)
+        now = datetime.now()
+        expired = [
+            mid for mid, info in self.messages.items()
+            if (now - info["start_time"]) > timedelta(seconds=MSG_TIMEOUT)
+        ]
+        for mid in expired:
+            del self.messages[mid]
 
     def add_packet(self, msg_id, seq, total, payload):
         """

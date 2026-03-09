@@ -6,26 +6,24 @@ Handles prompt display, message printing, and system command parsing
 """
 
 
+# Bold ANSI escape prefix / suffix shared by get_msg and print_msg
+_BOLD = '\033[1m'
+_RESET = '\033[0m'
+
+
+def _header(channel: str, cipher: str) -> str:
+    """Return the bold ``[rfcrypt][channel][cipher]`` header."""
+    return f"{_BOLD}[rfcrypt][{channel}][{cipher}]{_RESET}"
+
+
 def get_msg(channel: str, cipher: str) -> str:
     """Display a bold prompt and return the user's typed message."""
-    return input(
-        '\033[1m' + '[rfcrypt]'
-        + f'[{channel}]'
-        + f'[{cipher}]'
-        + '\033[0m'
-        + ' YOU-> '
-    )
+    return input(f"{_header(channel, cipher)} YOU-> ")
 
 
 def print_msg(channel: str, cipher: str, msg: str) -> None:
     """Print a received message with a bold header."""
-    print(
-        '\033[1m' + '[rfcrypt]'
-        + f'[{channel}]'
-        + f'[{cipher}]'
-        + '\033[0m'
-        + f' RECEIVED MESSAGE -> {msg}'
-    )
+    print(f"{_header(channel, cipher)} RECEIVED MESSAGE -> {msg}")
 
 
 def parse_cmd(cmd: str) -> tuple[str, str]:
