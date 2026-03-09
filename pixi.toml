@@ -18,6 +18,7 @@ pydub = ">=0.25.1,<0.26"
 scipy = ">=1.17.1,<2"
 pysimplegui = ">=4.60.5,<5"
 simpy = ">=4.1.1,<5"
+prompt_toolkit = ">=3.0.52,<4"
 
 [pypi-dependencies]
 sounddevice = ">=0.5.5, <0.6"

@@ -20,6 +20,8 @@ from typing import Optional
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from interface import Interface
+from prompt_toolkit import PromptSession
+from prompt_toolkit.patch_stdout import patch_stdout
 
 # Number of retransmission attempts before giving up on a packet
 MAX_RETRIES = 3
@@ -49,6 +51,7 @@ class Cli:
         # ACK synchronisation between rx-thread and tx-loop
         self.ack_event = threading.Event()
         self.last_ack_seq = -1
+
 
     # ------------------------------------------------------------------
     # Transmit helpers
@@ -190,33 +193,42 @@ class Cli:
         # Start background receive thread
         threading.Thread(target=self.receive_signal, args=(cipher,), daemon=True).start()
 
-        # --- Send loop ---
+        # --- Send loop with prompt_toolkit for clean concurrent I/O ---
+        session = PromptSession()
         packetizer = protocol.Packetizer()
-        while True:
-            msg = cli.get_msg(self.channel, cipher)
+        
+        with patch_stdout():
+            while True:
+                # Now prompt for input (won't be disrupted by background messages)
+                try:
+                    header = f"\033[1m[rfcrypt][{self.channel}][{cipher}]\033[0m"
+                    msg = session.prompt(f"{header} YOU-> ")
+                except KeyboardInterrupt:
+                    print("\nExiting...")
+                    break
 
-            # --- Handle system commands (e.g. \SYSCMD channel=ch2) ---
-            if msg.startswith("\\SYSCMD"):
-                msg = msg[len("\\SYSCMD"):].strip()
-                field, value = cli.parse_cmd(msg)
+                # --- Handle system commands (e.g. \SYSCMD channel=ch2) ---
+                if msg.startswith("\\SYSCMD"):
+                    msg = msg[len("\\SYSCMD"):].strip()
+                    field, value = cli.parse_cmd(msg)
 
-                if field == "" or value == "":
-                    print("Unrecognized system command.")
-                elif field == "channel":
-                    self.channel = value
+                    if field == "" or value == "":
+                        print("Unrecognized system command.")
+                    elif field == "channel":
+                        self.channel = value
 
-                continue
+                    continue
 
-            # --- Encrypt and transmit ---
-            msg_bytes = msg.encode("utf-8")
+                # --- Encrypt and transmit ---
+                msg_bytes = msg.encode("utf-8")
 
-            if cipher == "aes":
-                nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg_bytes, self.aes_dek)
-                tx_payload = nonce + ciphertext
-            else:
-                tx_payload = crypto.Asymmetric.encrypt_rsa(msg_bytes, self.receiver_pub_key)
+                if cipher == "aes":
+                    nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg_bytes, self.aes_dek)
+                    tx_payload = nonce + ciphertext
+                else:
+                    tx_payload = crypto.Asymmetric.encrypt_rsa(msg_bytes, self.receiver_pub_key)
 
-            self._send_with_ack(packetizer.get_packets(tx_payload))
+                self._send_with_ack(packetizer.get_packets(tx_payload))
 
 
 def orchestrateGui():
