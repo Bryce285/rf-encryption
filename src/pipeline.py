@@ -15,17 +15,13 @@ import framing
 import modulation
 import protocol
 import threading
-import time
-from typing import Optional
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 from interface import Interface
 from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.patch_stdout import patch_stdout
 
 # Number of retransmission attempts before giving up on a packet
 MAX_RETRIES = 3
-
 
 class Cli:
     """
@@ -42,9 +38,6 @@ class Cli:
 
         # Crypto material (assigned during orchestrateCli)
         self.aes_dek: bytes = b""
-        self.rsa_priv: Optional[rsa.RSAPrivateKey] = None
-        self.rsa_pub: Optional[rsa.RSAPublicKey] = None
-        self.receiver_pub_key: Optional[rsa.RSAPublicKey] = None
 
         self.channel = "ch1"  # current RF channel
 
@@ -62,9 +55,12 @@ class Cli:
             for attempt in range(1, MAX_RETRIES + 1):
                 signal = modulation.text_to_afsk(packet)
                 print(f"TX: packet {seq} ({len(packet)} B, {len(signal)} samples)")
+
+                # Clear BEFORE sending so that an ACK arriving while
+                # send() blocks isn't wiped out by a late clear().
+                self.ack_event.clear()
                 self.interface.send(signal, self.channel)
 
-                self.ack_event.clear()
                 if self.ack_event.wait(timeout=1.0) and self.last_ack_seq == seq:
                     break
                 print(f"Retrying packet {seq} (attempt {attempt}/{MAX_RETRIES})")
@@ -75,7 +71,7 @@ class Cli:
     # ------------------------------------------------------------------
     # Background receiver
     # ------------------------------------------------------------------
-    def receive_signal(self, cipher: str):
+    def receive_signal(self):
         """Continuously receive, demodulate, reassemble, and decrypt messages."""
         reassembler = protocol.Reassembler()
 
@@ -92,16 +88,6 @@ class Cli:
 
             # Demodulate AFSK audio back into raw bytes
             demodulated = modulation.afsk_to_text(rx_msg)
-
-            # --- Handle out-of-band PUBKEY exchange messages ---
-            if demodulated.startswith(b"PUBKEY:"):
-                pem_data = demodulated[len(b"PUBKEY:"):]
-                try:
-                    self.receiver_pub_key = serialization.load_pem_public_key(pem_data)
-                    print("Received remote peer's public key (via rx thread).")
-                except Exception as e:
-                    print(f"Failed to parse received public key: {e}")
-                continue
 
             print("RX:", demodulated[:24])
 
@@ -136,62 +122,25 @@ class Cli:
                     print("Packet assembled")
 
                     # Decrypt the reassembled ciphertext
-                    if cipher == "aes":
-                        nonce = assembled[:crypto.Symmetric.AESGCM_NONCE_LEN]
-                        ciphertext = assembled[crypto.Symmetric.AESGCM_NONCE_LEN:]
-                        plaintext_bytes = crypto.Symmetric.decrypt_aes(ciphertext, self.aes_dek, nonce)
-                    else:
-                        plaintext_bytes = crypto.Asymmetric.decrypt_rsa(assembled, self.rsa_priv)
+                    nonce = assembled[:crypto.Symmetric.AESGCM_NONCE_LEN]
+                    ciphertext = assembled[crypto.Symmetric.AESGCM_NONCE_LEN:]
+                    plaintext_bytes = crypto.Symmetric.decrypt_aes(ciphertext, self.aes_dek, nonce)
 
                     # Decode bytes to string before printing
-                    cli.print_msg(self.channel, cipher, plaintext_bytes.decode("utf-8", errors="replace"))
+                    cli.print_msg(self.channel, plaintext_bytes.decode("utf-8", errors="replace"))
 
     # ------------------------------------------------------------------
     # Main CLI loop
     # ------------------------------------------------------------------
-    def orchestrateCli(self, cipher: str):
+    def orchestrateCli(self):
         """Initialise keys and run the send loop (with background rx thread)."""
-        if cipher not in ("aes", "rsa"):
-            raise RuntimeError("Invalid cipher — must be 'aes' or 'rsa'")
 
         # --- Key setup ---
         passphrase = input('\033[1m' + '[rfcrypt]' + '\033[0m' + ' Enter your passphrase: ')
-        if cipher == "aes":
-            self.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)
-        else:
-            self.rsa_priv, self.rsa_pub = crypto.Asymmetric.load_or_generate_key_pair(passphrase)
-
-            # --- RSA public-key exchange over the simulated channel ---
-            # Serialize our public key to PEM bytes and broadcast it.
-            pub_pem = self.rsa_pub.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            )
-            # Send a special "PUBKEY" framed message so the receiver can
-            # parse it out of band.
-            key_payload = b"PUBKEY:" + pub_pem
-            key_signal = modulation.text_to_afsk(key_payload)
-            self.interface.send(key_signal, self.channel)
-            print("Public key broadcast sent.")
-
-            # Wait for the remote peer's public key to arrive
-            print("Waiting for remote peer's public key...")
-            while not hasattr(self, 'receiver_pub_key') or self.receiver_pub_key is None:
-                self.receiver_pub_key = None  # ensure attribute exists
-                rx = self.interface.receive()
-                if rx is None:
-                    time.sleep(0.2)
-                    continue
-                raw = modulation.afsk_to_text(rx)
-                if raw.startswith(b"PUBKEY:"):
-                    pem_data = raw[len(b"PUBKEY:"):]
-                    self.receiver_pub_key = serialization.load_pem_public_key(pem_data)
-                    print("Received remote peer's public key.")
-                    break
-                time.sleep(0.1)
+        self.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)
 
         # Start background receive thread
-        threading.Thread(target=self.receive_signal, args=(cipher,), daemon=True).start()
+        threading.Thread(target=self.receive_signal, daemon=True).start()
 
         # --- Send loop with prompt_toolkit for clean concurrent I/O ---
         session = PromptSession()
@@ -201,8 +150,8 @@ class Cli:
             while True:
                 # Now prompt for input (won't be disrupted by background messages)
                 try:
-                    header = f"\033[1m[rfcrypt][{self.channel}][{cipher}]\033[0m"
-                    msg = session.prompt(f"{header} YOU-> ")
+                    header = f"\033[1m[rfcrypt][{self.channel}][aes]\033[0m"
+                    msg = session.prompt(ANSI(f"{header} YOU-> "))
                 except KeyboardInterrupt:
                     print("\nExiting...")
                     break
@@ -221,12 +170,8 @@ class Cli:
 
                 # --- Encrypt and transmit ---
                 msg_bytes = msg.encode("utf-8")
-
-                if cipher == "aes":
-                    nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg_bytes, self.aes_dek)
-                    tx_payload = nonce + ciphertext
-                else:
-                    tx_payload = crypto.Asymmetric.encrypt_rsa(msg_bytes, self.receiver_pub_key)
+                nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg_bytes, self.aes_dek)
+                tx_payload = nonce + ciphertext
 
                 self._send_with_ack(packetizer.get_packets(tx_payload))
 

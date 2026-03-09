@@ -22,13 +22,6 @@ def main():
     )
 
     parser.add_argument(
-        "--cipher",
-        choices=["aes", "rsa"],
-        required=True,
-        help="Cipher to use (aes or rsa)"
-    )
-
-    parser.add_argument(
         "--id",
         type=str,
         required=True,
@@ -45,7 +38,6 @@ def main():
 
     # Avoid shadowing the built-in `id`
     node_id = args.id
-    cipher = args.cipher
     simulated = args.simulated
 
     if not args.gui:
@@ -70,7 +62,7 @@ def main():
         speaker_idx = output_devices[selection][0]
 
         cli_pipeline = pipeline.Cli(node_id, simulated, speaker_idx)
-        cli_pipeline.orchestrateCli(cipher)
+        cli_pipeline.orchestrateCli()
     else:
         # ----- GUI mode -----
         pipeline.orchestrateGui()

@@ -51,9 +51,8 @@ time.sleep(0.3)  # let registrations settle
 passphrase = "test-passphrase-123"
 
 # Remove any leftover key files from previous runs
-for f in ("aes.key", "rsa_private.key"):
-    if os.path.exists(f):
-        os.remove(f)
+if os.path.exists("aes.key"):
+    os.remove("aes.key")
 
 aes_key = crypto.Symmetric.load_or_generate_key(passphrase)
 print(f"AES key generated: {aes_key.hex()[:16]}...")

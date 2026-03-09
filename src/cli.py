@@ -5,26 +5,23 @@ Handles prompt display, message printing, and system command parsing
 (e.g. switching channels).
 """
 
+import prompt_toolkit
 
 # Bold ANSI escape prefix / suffix shared by get_msg and print_msg
 _BOLD = '\033[1m'
 _RESET = '\033[0m'
 
+def _header(channel: str) -> str:
+    """Return the bold ``[rfcrypt][channel]`` header."""
+    return _BOLD + f'[rfcrypt][{channel}]' + _RESET
 
-def _header(channel: str, cipher: str) -> str:
-    """Return the bold ``[rfcrypt][channel][cipher]`` header."""
-    return f"{_BOLD}[rfcrypt][{channel}][{cipher}]{_RESET}"
-
-
-def get_msg(channel: str, cipher: str) -> str:
+def get_msg(channel: str) -> str:
     """Display a bold prompt and return the user's typed message."""
-    return input(f"{_header(channel, cipher)} YOU-> ")
+    return input(f"{_header(channel)} YOU-> ")
 
-
-def print_msg(channel: str, cipher: str, msg: str) -> None:
+def print_msg(channel: str, msg: str) -> None:
     """Print a received message with a bold header."""
-    print(f"{_header(channel, cipher)} RECEIVED MESSAGE -> {msg}")
-
+    print(f"{_header(channel)} RECEIVED MESSAGE -> {msg}")
 
 def parse_cmd(cmd: str) -> tuple[str, str]:
     """
@@ -47,14 +44,6 @@ def parse_cmd(cmd: str) -> tuple[str, str]:
 
         # Validate: must look like "ch<digits>"
         if value_tmp.startswith("ch") and value_tmp[2:].isdigit():
-            value = value_tmp
-
-    elif cmd.startswith("cipher="):
-        field = "cipher"
-        value_tmp = cmd[len("cipher="):]
-
-        # Validate: must be one of the supported cipher names
-        if value_tmp in ("aes", "rsa"):
             value = value_tmp
 
     return field, value

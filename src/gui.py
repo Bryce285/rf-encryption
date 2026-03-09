@@ -15,11 +15,9 @@ from __future__ import annotations
 
 import threading
 from datetime import datetime
-from typing import Callable, Optional
+from typing import Callable
 
 import PySimpleGUI as sg
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 import crypto
 import framing
@@ -88,9 +86,6 @@ class GuiBackend:
         self.on_message   = on_message
 
         self.aes_dek: bytes                            = b""
-        self.rsa_priv: Optional[rsa.RSAPrivateKey]    = None
-        self.rsa_pub:  Optional[rsa.RSAPublicKey]     = None
-        self.receiver_pub_key: Optional[rsa.RSAPublicKey] = None
 
         self.channel = "ch1"
 
@@ -101,31 +96,25 @@ class GuiBackend:
     # Public API
     # ------------------------------------------------------------------
 
-    def send_message(self, plaintext: str, cipher: str) -> bool:
+    def send_message(self, plaintext: str) -> bool:
         """
-        Encrypt *plaintext* with *cipher* and transmit it.
+        Encrypt *plaintext* with AES-GCM and transmit it.
 
-        Returns True on success, False if RSA peer key is missing.
+        Returns True on success.
         """
         packetizer = protocol.Packetizer()
         msg_bytes  = plaintext.encode("utf-8")
 
-        if cipher == "aes":
-            nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg_bytes, self.aes_dek)
-            tx_payload = nonce + ciphertext
-        else:
-            if self.receiver_pub_key is None:
-                return False
-            tx_payload = crypto.Asymmetric.encrypt_rsa(msg_bytes, self.receiver_pub_key)
+        nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg_bytes, self.aes_dek)
+        tx_payload = nonce + ciphertext
 
         self._send_with_ack(packetizer.get_packets(tx_payload))
         return True
 
-    def start_receiver(self, cipher: str):
+    def start_receiver(self):
         """Spawn a daemon receive thread."""
         threading.Thread(
             target=self._receive_loop,
-            args=(cipher,),
             daemon=True,
         ).start()
 
@@ -147,7 +136,7 @@ class GuiBackend:
                     break
                 # silent retry — status updates come from the GUI layer
 
-    def _receive_loop(self, cipher: str):
+    def _receive_loop(self):
         reassembler = protocol.Reassembler()
 
         while True:
@@ -158,15 +147,6 @@ class GuiBackend:
                 continue
 
             demodulated = modulation.afsk_to_text(rx_msg)
-
-            # Out-of-band public-key exchange
-            if demodulated.startswith(b"PUBKEY:"):
-                pem_data = demodulated[len(b"PUBKEY:"):]
-                try:
-                    self.receiver_pub_key = serialization.load_pem_public_key(pem_data)
-                except Exception:
-                    pass
-                continue
 
             # ACK packet
             ack_seq = framing.parse_ack(demodulated)
@@ -195,20 +175,15 @@ class GuiBackend:
                 continue
 
             # Decrypt
-            if cipher == "aes":
-                nonce           = assembled[:crypto.Symmetric.AESGCM_NONCE_LEN]
-                ciphertext      = assembled[crypto.Symmetric.AESGCM_NONCE_LEN:]
-                plaintext_bytes = crypto.Symmetric.decrypt_aes(
-                    ciphertext, self.aes_dek, nonce
-                )
-            else:
-                plaintext_bytes = crypto.Asymmetric.decrypt_rsa(
-                    assembled, self.rsa_priv
-                )
+            nonce           = assembled[:crypto.Symmetric.AESGCM_NONCE_LEN]
+            ciphertext      = assembled[crypto.Symmetric.AESGCM_NONCE_LEN:]
+            plaintext_bytes = crypto.Symmetric.decrypt_aes(
+                ciphertext, self.aes_dek, nonce
+            )
 
             self.on_message(
                 self.channel,
-                cipher,
+                "aes",
                 plaintext_bytes.decode("utf-8", errors="replace"),
             )
 
@@ -239,16 +214,6 @@ def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
         [
             sg.Text("Node ID",       size=(14, 1), background_color=_BG),
             sg.Input(key="-NODE-",   size=(26, 1), default_text="alice"),
-        ],
-        [
-            sg.Text("Cipher",        size=(14, 1), background_color=_BG),
-            sg.Combo(
-                ["aes", "rsa"],
-                default_value="aes",
-                key="-CIPHER-",
-                readonly=True,
-                size=(24, 1),
-            ),
         ],
         [
             sg.Text("Passphrase",    size=(14, 1), background_color=_BG),
@@ -298,7 +263,6 @@ def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
 
         if event == "Connect":
             node_id    = values["-NODE-"].strip()
-            cipher     = values["-CIPHER-"]
             passphrase = values["-PASS-"]
             device_str = values["-DEVICE-"]
             simulated  = values["-SIM-"]
@@ -320,7 +284,6 @@ def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
             win.close()
             return {
                 "node_id":     node_id,
-                "cipher":      cipher,
                 "passphrase":  passphrase,
                 "speaker_idx": speaker_idx,
                 "simulated":   simulated,
@@ -329,10 +292,10 @@ def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
 
 # ── Chat window ───────────────────────────────────────────────────────────────
 
-def _build_chat_window(node_id: str, cipher: str, channel: str) -> sg.Window:
+def _build_chat_window(node_id: str, channel: str) -> sg.Window:
     """Construct (but do not show) the main chat window."""
 
-    header = f"  {node_id}  ·  cipher: {cipher}  ·  channel: {channel}"
+    header = f"  {node_id}  ·  cipher: aes  ·  channel: {channel}"
 
     layout = [
         # Header bar
@@ -418,13 +381,12 @@ def run():
         return  # user closed setup window
 
     node_id     = settings["node_id"]
-    cipher      = settings["cipher"]
     passphrase  = settings["passphrase"]
     speaker_idx = settings["speaker_idx"]
     simulated   = settings["simulated"]
 
     # Open chat window before blocking key-setup steps so the user sees progress
-    win = _build_chat_window(node_id, cipher, "ch1")
+    win = _build_chat_window(node_id, "ch1")
 
     # ── Convenience helpers that touch window elements ──────────────────
 
@@ -446,38 +408,18 @@ def run():
 
     backend = GuiBackend(node_id, simulated, speaker_idx, _on_message)
 
-    if cipher == "aes":
-        try:
-            backend.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)
-        except Exception as exc:
-            sg.popup_error(f"AES key setup failed:\n{exc}")
-            win.close()
-            return
-    else:
-        try:
-            backend.rsa_priv, backend.rsa_pub = (
-                crypto.Asymmetric.load_or_generate_key_pair(passphrase)
-            )
-        except Exception as exc:
-            sg.popup_error(f"RSA key setup failed:\n{exc}")
-            win.close()
-            return
+    try:
+        backend.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)
+    except Exception as exc:
+        sg.popup_error(f"AES key setup failed:\n{exc}")
+        win.close()
+        return
 
-        # Broadcast our public key so the peer can encrypt to us
-        pub_pem = backend.rsa_pub.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
-        key_signal = modulation.text_to_afsk(b"PUBKEY:" + pub_pem)
-        backend.interface.send(key_signal, backend.channel)
-        _status("Public key broadcast sent. Waiting for peer…", _YELLOW)
-        win.refresh()
-
-    backend.start_receiver(cipher)
+    backend.start_receiver()
 
     _status("Connected — ready to send.", _GREEN)
     win.refresh()
-    _append(f"── Connected as {node_id}  [cipher={cipher}] ──", _ACCENT)
+    _append(f"── Connected as {node_id}  [cipher=aes] ──", _ACCENT)
 
     # ── Main event loop ──────────────────────────────────────────────────
 
@@ -504,7 +446,7 @@ def run():
 
             # Offload the blocking transmit to its own thread
             def _do_send(text: str = msg_text):
-                ok = backend.send_message(text, cipher)
+                ok = backend.send_message(text)
                 win.write_event_value("-SENT-", (text, ok))
 
             threading.Thread(target=_do_send, daemon=True).start()
@@ -516,7 +458,7 @@ def run():
                 _append(f"[{_now()}] → {text}", _ACCENT)
                 _status("Sent.", _SUBTEXT)
             else:
-                _status("Send failed — no peer public key for RSA.", _RED)
+                _status("Send failed.", _RED)
 
     win.close()
 
