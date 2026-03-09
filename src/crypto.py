@@ -10,6 +10,7 @@ in ``aes.key``.  RSA private keys are stored PEM-encrypted in
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.exceptions import InvalidTag
 from argon2.low_level import hash_secret_raw, Type
 from pathlib import Path
 from typing import Tuple
@@ -50,7 +51,13 @@ class Symmetric:
                          Symmetric.AESGCM_SALT_LEN + Symmetric.AESGCM_NONCE_LEN]
             ciphertext = blob[Symmetric.AESGCM_SALT_LEN + Symmetric.AESGCM_NONCE_LEN:]
             kek = Symmetric._derive_kek(passphrase, salt)
-            return AESGCM(kek).decrypt(nonce, ciphertext, None)
+            try:
+                return AESGCM(kek).decrypt(nonce, ciphertext, None)
+            except InvalidTag:
+                raise ValueError(
+                    f"Wrong passphrase — could not decrypt '{AES_KEY_PATH}'. "
+                    "Delete the key file to generate a new one."
+                ) from None
 
         # Generate a fresh DEK and persist it wrapped by a passphrase-derived KEK
         dek = os.urandom(Symmetric.AESGCM_DEK_LEN)

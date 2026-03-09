@@ -16,7 +16,6 @@ RECORD_DURATION = 1.0
 # RMS below this threshold is treated as silence (no useful signal)
 SILENCE_THRESHOLD = 0.01
 
-
 class Interface:
     """
     Unified send/receive interface that routes audio through either
