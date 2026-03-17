@@ -4,6 +4,7 @@ Handles sending/receiving audio signals via physical speakers or the
 RF simulation server.
 """
 
+import threading
 import numpy as np
 import numpy.typing as npt
 import rfsim_client
@@ -28,9 +29,13 @@ class Interface:
                      desired output device (not a filtered-list index)
     """
 
-    def __init__(self, node_id: str, simulated: bool, speaker_idx: int):
+    def __init__(self, node_id: str, simulated: bool, speaker_idx: int, mic_idx):
         self.SIMULATED = simulated
-        self.speaker_idx = speaker_idx  # original sd.query_devices() index
+        self.speaker_idx = speaker_idx
+        self.mic_idx = mic_idx
+        # Serialize all sounddevice (PortAudio) calls to prevent concurrent
+        # C-level access from different threads (causes double-free crashes).
+        self._sd_lock = threading.Lock()
 
         # Only connect to the simulation server when running in simulated mode
         if self.SIMULATED:
@@ -54,11 +59,12 @@ class Interface:
             channel: RF channel identifier (used by the sim server)
         """
         # Play the audio on the selected output device
-        try:
-            sd.play(msg, samplerate=SAMPLE_RATE, device=self.speaker_idx)
-            sd.wait()
-        except Exception as e:
-            print(f"Error during audio playback: {e}")
+        with self._sd_lock:
+            try:
+                sd.play(msg, samplerate=SAMPLE_RATE, device=self.speaker_idx)
+                sd.wait()
+            except Exception as e:
+                print(f"Error during audio playback: {e}")
 
         # Forward to the simulation server when in simulated mode
         if self.SIMULATED and self.sim_client is not None:
@@ -72,36 +78,35 @@ class Interface:
         """
         Receive the next available audio signal.
 
-        In simulated mode this pops the oldest message from the sim
+        In simulated mode, this pops the oldest message from the sim
         server inbox.  Returns None when no message is available.
 
-        NOTE: Real (non-simulated) receive is not yet implemented —
-              it would require recording from an input device.
+        In real mode, this...
         """
         if self.SIMULATED and self.sim_client is not None:
             if self.sim_client.inbox:
-                # Pop exactly once and return the signal
                 return self.sim_client.inbox.popleft()
             return None
         else:
             # Record a short clip from the default input device and return
             # it if it contains audible signal (above the silence threshold).
-            try:
-                recording = sd.rec(
-                    int(RECORD_DURATION * SAMPLE_RATE),
-                    samplerate=SAMPLE_RATE,
-                    channels=1,
-                    dtype='float64',
-                    device=None,       # use default input device
-                )
-                sd.wait()
-                signal = recording.flatten()
-
-                # Discard silent recordings to avoid feeding noise downstream
-                rms = np.sqrt(np.mean(signal ** 2))
-                if rms < SILENCE_THRESHOLD:
+            with self._sd_lock:
+                try:
+                    recording = sd.rec(
+                        int(RECORD_DURATION * SAMPLE_RATE),
+                        samplerate=SAMPLE_RATE,
+                        channels=1,
+                        dtype='float64',
+                        device=self.mic_idx,
+                    )
+                    sd.wait()
+                except Exception as e:
+                    print(f"Error recording from microphone: {e}")
                     return None
-                return signal
-            except Exception as e:
-                print(f"Error recording from microphone: {e}")
+            signal = recording.flatten()
+
+            # Discard silent recordings to avoid feeding noise downstream
+            rms = np.sqrt(np.mean(signal ** 2))
+            if rms < SILENCE_THRESHOLD:
                 return None
+            return signal

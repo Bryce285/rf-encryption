@@ -79,9 +79,10 @@ class GuiBackend:
         node_id: str,
         simulated: bool,
         speaker_idx: int,
+        mic_idx: int,
         on_message: Callable[[str, str, str], None],
     ):
-        self.interface    = Interface(node_id, simulated, speaker_idx)
+        self.interface    = Interface(node_id, simulated, speaker_idx, mic_idx)
         self.node_id      = node_id
         self.on_message   = on_message
 
@@ -190,13 +191,14 @@ class GuiBackend:
 
 # ── Setup window ─────────────────────────────────────────────────────────────
 
-def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
+def _setup_window(output_devices: list[tuple[int, dict]], input_devices: list[tuple[int, dict]]) -> dict | None:
     """
     Display the connection-setup window.
 
     Returns a settings dict on success, or None if the user closed the window.
     """
     device_names = [f"{orig_idx}: {d['name']}" for orig_idx, d in output_devices]
+    input_device_names = [f"{orig_idx}: {d['name']}" for orig_idx, d in input_devices]
 
     layout = [
         [
@@ -227,6 +229,16 @@ def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
                 readonly=True,
                 size=(40, 1),
                 default_value=device_names[0] if device_names else "",
+            ),
+        ],
+        [
+            sg.Text("Input device", size=(14, 1), background_color=_BG),
+            sg.Combo(
+                input_device_names,
+                key="-MIC-",
+                readonly=True,
+                size=(40, 1),
+                default_value=input_device_names[0] if input_device_names else "",
             ),
         ],
         [
@@ -265,6 +277,7 @@ def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
             node_id    = values["-NODE-"].strip()
             passphrase = values["-PASS-"]
             device_str = values["-DEVICE-"]
+            mic_str    = values["-MIC-"]
             simulated  = values["-SIM-"]
 
             errors = []
@@ -274,6 +287,8 @@ def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
                 errors.append("Passphrase cannot be empty.")
             if not device_str:
                 errors.append("Please select an output device.")
+            if not mic_str:
+                errors.append("Please select an input device.")
 
             if errors:
                 sg.popup_error("\n".join(errors), background_color=_BG, text_color=_TEXT)
@@ -281,11 +296,13 @@ def _setup_window(output_devices: list[tuple[int, dict]]) -> dict | None:
 
             # "42: Built-in Speaker" → 42
             speaker_idx = int(device_str.split(":")[0])
+            mic_idx     = int(mic_str.split(":")[0])
             win.close()
             return {
                 "node_id":     node_id,
                 "passphrase":  passphrase,
                 "speaker_idx": speaker_idx,
+                "mic_idx":     mic_idx,
                 "simulated":   simulated,
             }
 
@@ -375,14 +392,18 @@ def run():
     output_devices = [
         (i, d) for i, d in enumerate(devices) if d["max_output_channels"] > 0
     ]
+    input_devices = [
+        (i, d) for i, d in enumerate(devices) if d["max_input_channels"] > 0
+    ]
 
-    settings = _setup_window(output_devices)
+    settings = _setup_window(output_devices, input_devices)
     if settings is None:
         return  # user closed setup window
 
     node_id     = settings["node_id"]
     passphrase  = settings["passphrase"]
     speaker_idx = settings["speaker_idx"]
+    mic_idx     = settings["mic_idx"]
     simulated   = settings["simulated"]
 
     # Open chat window before blocking key-setup steps so the user sees progress
@@ -406,7 +427,7 @@ def run():
     _status("Setting up keys…", _YELLOW)
     win.refresh()
 
-    backend = GuiBackend(node_id, simulated, speaker_idx, _on_message)
+    backend = GuiBackend(node_id, simulated, speaker_idx, mic_idx, _on_message)
 
     try:
         backend.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)

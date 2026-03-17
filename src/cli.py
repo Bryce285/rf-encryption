@@ -5,8 +5,6 @@ Handles prompt display, message printing, and system command parsing
 (e.g. switching channels).
 """
 
-import prompt_toolkit
-
 # Bold ANSI escape prefix / suffix shared by get_msg and print_msg
 _BOLD = '\033[1m'
 _RESET = '\033[0m'
@@ -17,7 +15,7 @@ def _header(channel: str) -> str:
 
 def get_msg(channel: str) -> str:
     """Display a bold prompt and return the user's typed message."""
-    return input(f"{_header(channel)} YOU-> ")
+    return input(f"{_header(channel)} YOU -> ")
 
 def print_msg(channel: str, msg: str) -> None:
     """Print a received message with a bold header."""

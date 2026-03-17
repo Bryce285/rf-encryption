@@ -2,16 +2,14 @@
 Pipeline module: high-level orchestration of the full messaging workflow.
 
 CLI path:
-    type message → encrypt → packetize → modulate (AFSK) → transmit
+    type message → encrypt → packetize → modulate → transmit
     receive → demodulate → reassemble → decrypt → display
-
-GUI path:
-    (placeholder — not yet implemented)
 """
 
 import cli
 import crypto
 import framing
+import logging
 import modulation
 import protocol
 import threading
@@ -19,6 +17,16 @@ from interface import Interface
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import ANSI
 from prompt_toolkit.patch_stdout import patch_stdout
+
+# Setup logging
+logging.basicConfig(
+	filename='../log.txt',
+	level=logging.DEBUG,
+	format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+logger = logging.getLogger(__name__)
 
 # Number of retransmission attempts before giving up on a packet
 MAX_RETRIES = 3
@@ -31,8 +39,8 @@ class Cli:
     and handles user input in the foreground.
     """
 
-    def __init__(self, node_id: str, simulated: bool, speaker_idx: int):
-        self.interface = Interface(node_id, simulated, speaker_idx)
+    def __init__(self, node_id: str, simulated: bool, speaker_idx: int, mic_idx: int):
+        self.interface = Interface(node_id, simulated, speaker_idx, mic_idx)
         self.node_id = node_id
         self.simulated = simulated
 
@@ -54,7 +62,7 @@ class Cli:
         for seq, packet in enumerate(packets):
             for attempt in range(1, MAX_RETRIES + 1):
                 signal = modulation.text_to_afsk(packet)
-                print(f"TX: packet {seq} ({len(packet)} B, {len(signal)} samples)")
+                logger.info(f"TX: packet {seq} ({len(packet)} B, {len(signal)} samples)")
 
                 # Clear BEFORE sending so that an ACK arriving while
                 # send() blocks isn't wiped out by a late clear().
@@ -84,19 +92,19 @@ class Cli:
                 continue
 
             print("signal received from interface")
-            print("RX samples:", len(rx_msg))
+            logger.info("RX samples: %s", len(rx_msg))
 
             # Demodulate AFSK audio back into raw bytes
             demodulated = modulation.afsk_to_text(rx_msg)
 
-            print("RX:", demodulated[:24])
+            logger.info("RX: %s", demodulated[:24])
 
             # --- Check if this is an ACK packet ---
             ack_seq = framing.parse_ack(demodulated)
             if ack_seq is not None:
                 self.last_ack_seq = ack_seq["seq"]
                 self.ack_event.set()
-                print("ACK event set")
+                logger.info("ACK event set")
                 continue
 
             # --- Otherwise treat as a data packet ---
@@ -136,7 +144,7 @@ class Cli:
         """Initialise keys and run the send loop (with background rx thread)."""
 
         # --- Key setup ---
-        passphrase = input('\033[1m' + '[rfcrypt]' + '\033[0m' + ' Enter your passphrase: ')
+        passphrase = input(f'{cli._header(self.channel)} Enter your passphrase: ')
         self.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)
 
         # Start background receive thread
@@ -150,8 +158,7 @@ class Cli:
             while True:
                 # Now prompt for input (won't be disrupted by background messages)
                 try:
-                    header = f"\033[1m[rfcrypt][{self.channel}][aes]\033[0m"
-                    msg = session.prompt(ANSI(f"{header} YOU-> "))
+                    msg = session.prompt(f"{cli.get_msg(self.channel)}")
                 except KeyboardInterrupt:
                     print("\nExiting...")
                     break
@@ -175,7 +182,7 @@ class Cli:
 
                 self._send_with_ack(packetizer.get_packets(tx_payload))
 
-
 def orchestrateGui():
-    """Launch the PySimpleGUI front-end (not yet implemented)."""
-    pass
+    """Launch the PySimpleGUI front-end."""
+    import gui
+    gui.run()

@@ -1,0 +1,50 @@
+2026-03-09 16:20:44 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:20:46 - pipeline - INFO - TX: packet 0 (66 B, 21120 samples)
+2026-03-09 16:20:49 - pipeline - INFO - TX: packet 0 (66 B, 21120 samples)
+2026-03-09 16:20:51 - pipeline - INFO - TX: packet 0 (66 B, 21120 samples)
+2026-03-09 16:20:54 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:21:34 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:21:36 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:21:38 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
+2026-03-09 16:21:41 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
+2026-03-09 16:21:44 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
+2026-03-09 16:21:47 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:22:13 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
+2026-03-09 16:22:16 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
+2026-03-09 16:22:19 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
+2026-03-09 16:22:33 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:22:36 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:22:38 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
+2026-03-09 16:22:41 - pipeline - INFO - ACK event set
+2026-03-09 16:22:41 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:24:27 - pipeline - INFO - TX: packet 0 (66 B, 21120 samples)
+2026-03-09 16:24:29 - pipeline - INFO - ACK event set
+2026-03-09 16:24:29 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:31:40 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
+2026-03-09 16:31:42 - pipeline - INFO - ACK event set
+2026-03-09 16:31:42 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:34:00 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:34:02 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
+2026-03-09 16:34:04 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
+2026-03-09 16:34:07 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
+2026-03-09 16:34:53 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-09 16:34:56 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
+2026-03-09 16:34:58 - pipeline - INFO - RX samples: 20480
+2026-03-09 16:34:58 - pipeline - INFO - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
+2026-03-09 16:34:58 - pipeline - INFO - RX samples: 1600
+2026-03-09 16:34:58 - pipeline - INFO - RX: b'\x02\x00\x01\x00\x00'
+2026-03-09 16:34:58 - pipeline - INFO - ACK event set
+2026-03-12 09:59:56 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-12 09:59:59 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
+2026-03-12 10:00:01 - pipeline - INFO - RX samples: 20480
+2026-03-12 10:00:01 - pipeline - INFO - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
+2026-03-12 10:00:01 - pipeline - INFO - RX samples: 1600
+2026-03-12 10:00:01 - pipeline - INFO - RX: b'\x02\x00\x01\x00\x00'
+2026-03-12 10:00:01 - pipeline - INFO - ACK event set
+2026-03-12 10:00:17 - asyncio - DEBUG - Using selector: EpollSelector
+2026-03-12 10:00:18 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
+2026-03-12 10:00:20 - pipeline - INFO - RX samples: 20480
+2026-03-12 10:00:20 - pipeline - INFO - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
+2026-03-12 10:00:20 - pipeline - INFO - RX samples: 1600
+2026-03-12 10:00:20 - pipeline - INFO - RX: b'\x02\x00\x01\x00\x00'
+2026-03-12 10:00:20 - pipeline - INFO - ACK event set

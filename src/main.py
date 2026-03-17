@@ -2,9 +2,9 @@
 Entry point: routes to CLI or GUI based on command-line arguments.
 
 Usage examples:
-    python main.py --cipher aes --id alice              # CLI mode
-    python main.py --cipher aes --id alice --gui        # GUI mode
-    python main.py --cipher aes --id alice --simulated  # use RF sim server
+    python main.py --id alice              # CLI mode
+    python main.py --id alice --gui        # GUI mode
+    python main.py --id alice --simulated  # use RF sim server
 """
 
 import argparse
@@ -52,21 +52,30 @@ def main():
             if d['max_output_channels'] > 0
         ]
 
+        input_devices = [
+            (i, d) for i, d in enumerate(devices)
+            if d['max_input_channels'] > 0
+        ]
+        
         print("Please select your desired output device:")
-        for idx, (original_idx, device) in enumerate(output_devices):
-            print(f"  {idx}: {device['name']}  (device #{original_idx})")
+        for idx, (_, device) in enumerate(output_devices):
+            print(f"{idx}: {device['name']}")
 
-        selection = int(input("\nEnter device number: "))
+        speaker_idx = output_devices[int(input("\nEnter device number: "))][0]
 
+        print("\nPlease select your desired input device:")
+        for idx, (_, device) in enumerate(input_devices):
+            print(f"{idx}: {device['name']}")
+            
+        mic_idx = input_devices[int(input("\nEnter device number: "))][0]
+        print("\n")
+        
         # Resolve the user's selection back to the original device index
-        speaker_idx = output_devices[selection][0]
-
-        cli_pipeline = pipeline.Cli(node_id, simulated, speaker_idx)
+        cli_pipeline = pipeline.Cli(node_id, simulated, speaker_idx, mic_idx)
         cli_pipeline.orchestrateCli()
     else:
         # ----- GUI mode -----
         pipeline.orchestrateGui()
-
 
 if __name__ == "__main__":
     main()
