@@ -5,7 +5,6 @@ import time
 import random
 import math
 
-# TODO - add some features for more realism
 
 class RadioSimServer:
     def __init__(self, host="localhost", port=5000):
@@ -26,8 +25,8 @@ class RadioSimServer:
         # }
 
         # Simulation parameters
-        self.packet_loss = 0.00
-        self.latency = 0.00
+        self.packet_loss = 0.0
+        self.latency = 0.0
         self.max_range = 1000
         self.data_rate = 10000.0  # bytes per second
 
@@ -63,7 +62,7 @@ class RadioSimServer:
         elif msg_type == "switch_channel":
             self.switch_channel(msg)
 
-        elif msg_type == "transmit":
+        elif msg_type == "transport":
             self.handle_transmission(msg)
 
     # ============================
@@ -121,10 +120,12 @@ class RadioSimServer:
 
         sender_info = self.nodes[sender_id]
         channel_id = sender_info["channel"]
-
         channel = self.channels[channel_id]
 
-        tx_time = len(payload.encode()) / self.data_rate
+        # Approximate transmission time (base64 → raw bytes estimate)
+        payload_size = len(payload) * 3 // 4
+        tx_time = payload_size / self.data_rate
+
         now = time.time()
 
         with channel["lock"]:
@@ -136,7 +137,7 @@ class RadioSimServer:
             for node in expired:
                 del channel["transmitting"][node]
 
-            # Check for other active transmitters
+            # Check for collisions
             other_tx = [
                 node for node in channel["transmitting"]
                 if node != sender_id
@@ -171,15 +172,16 @@ class RadioSimServer:
                 print("Packet lost due to noise")
                 continue
 
-            # Latency
-            time.sleep(self.latency)
+            # Latency (with optional jitter)
+            time.sleep(self.latency + random.uniform(0, 0.01))
 
             packet = json.dumps({
                 "type": "receive",
                 "from": sender_id,
-                "payload": msg.get("payload"),
-                "chunk_index": msg.get("chunk_index"),
-                "num_chunks": msg.get("num_chunks")
+                "id": msg.get("id"),
+                "seq": msg.get("seq"),
+                "total": msg.get("total"),
+                "payload": payload
             }).encode()
 
             self.sock.sendto(packet, node["addr"])
@@ -195,6 +197,7 @@ class RadioSimServer:
         dy = pos1[1] - pos2[1]
         distance = math.sqrt(dx * dx + dy * dy)
         return distance <= self.max_range
+
 
 if __name__ == "__main__":
     server = RadioSimServer()

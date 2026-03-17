@@ -13,7 +13,7 @@ from typing import Tuple
 import os
 
 # Default key file paths
-AES_KEY_PATH = Path("../keys/aes.key")
+AES_KEY_PATH = Path("/home/bryce/school/497X/rf-encryption/keys/aes.key")
 RSA_KEY_PATH = Path("../keys/rsa_private.key")
 
 

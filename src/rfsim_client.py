@@ -16,7 +16,7 @@ import numpy as np
 from collections import deque
 
 # Maximum bytes of base64-encoded payload per UDP datagram
-MAX_UDP_PAYLOAD = 1400
+MAX_UDP_PAYLOAD = 1200
 
 class RadioClient:
     def __init__(self, node_id, position=(0,0),
@@ -29,7 +29,8 @@ class RadioClient:
         self.channel = channel
         self.server_addr = server_addr
 
-        self.partial_signals = {}
+        self.partial_transports = {}
+        self.transport_counter = 0
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # Bind to port 0 so the OS assigns a free ephemeral port.
@@ -42,6 +43,10 @@ class RadioClient:
 
         self.inbox = deque()
         threading.Thread(target=self.listen, daemon=True).start()
+
+    def _next_transport_id(self):
+        self.transport_counter += 1
+        return f"{self.node_id}-{self.transport_counter}"
 
     def register(self):
         self.sock.sendto(json.dumps({
@@ -60,24 +65,23 @@ class RadioClient:
         }).encode(), self.server_addr)
 
     def send(self, signal: np.ndarray):
-        """Send a large signal in UDP-safe chunks while keeping the interface the same."""
+        print("udp send called")
         raw_bytes = signal.tobytes()
-        total_len = len(raw_bytes)
-        num_chunks = math.ceil(total_len / MAX_UDP_PAYLOAD)
 
-        for i in range(num_chunks):
-            start = i * MAX_UDP_PAYLOAD
-            end = min(start + MAX_UDP_PAYLOAD, total_len)
-            chunk = raw_bytes[start:end]
+        transport_id = self._next_transport_id()
+        chunk_size = MAX_UDP_PAYLOAD
+        total = math.ceil(len(raw_bytes) / chunk_size)
 
-            encoded = base64.b64encode(chunk).decode()
+        for i in range(total):
+            chunk = raw_bytes[i*chunk_size:(i+1)*chunk_size]
 
             packet = json.dumps({
-                "type": "transmit",
+                "type": "transport",
                 "node_id": self.node_id,
-                "chunk_index": i,
-                "num_chunks": num_chunks,
-                "payload": encoded
+                "id": transport_id,
+                "seq": i,
+                "total": total,
+                "payload": base64.b64encode(chunk).decode()
             }).encode()
 
             self.sock.sendto(packet, self.server_addr)
@@ -87,30 +91,40 @@ class RadioClient:
             data, _ = self.sock.recvfrom(65535)
             msg = json.loads(data.decode())
 
-            if msg["type"] == "receive":
-                key = msg["from"]
+            if msg.get("type") != "receive":
+                continue
 
-                if key not in self.partial_signals:
-                    self.partial_signals[key] = {
-                        "num_chunks": msg["num_chunks"],
-                        "chunks": {}
-                    }
+            # Extract transport fields (depends on your server forwarding format)
+            t_id = msg.get("id")
+            seq = msg.get("seq")
+            total = msg.get("total")
+            payload = msg.get("payload")
 
-                entry = self.partial_signals[key]
-                entry["chunks"][msg["chunk_index"]] = base64.b64decode(msg["payload"])
+            if t_id is None:
+                continue  # malformed packet
 
-                # check if complete
-                if len(entry["chunks"]) == entry["num_chunks"]:
+            if t_id not in self.partial_transports:
+                self.partial_transports[t_id] = {
+                    "total": total,
+                    "chunks": {}
+                }
 
-                    assembled = b''.join(
+            entry = self.partial_transports[t_id]
+            entry["chunks"][seq] = base64.b64decode(payload)
+
+            # Only assemble if ALL chunks are present
+            if len(entry["chunks"]) == entry["total"]:
+                try:
+                    full_bytes = b''.join(
                         entry["chunks"][i]
-                        for i in range(entry["num_chunks"])
+                        for i in range(entry["total"])
                     )
+                except KeyError:
+                    # Missing chunk → shouldn't happen, but be safe
+                    continue
 
-                    signal = np.frombuffer(assembled, dtype=np.float64)
+                signal = np.frombuffer(full_bytes, dtype=np.float64)
 
-                    print("Full signal received:", len(signal))
+                self.inbox.append(signal)
 
-                    self.inbox.append(signal)
-
-                    del self.partial_signals[key]
+                del self.partial_transports[t_id]

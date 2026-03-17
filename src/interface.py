@@ -40,6 +40,7 @@ class Interface:
         # Only connect to the simulation server when running in simulated mode
         if self.SIMULATED:
             self.sim_client = rfsim_client.RadioClient(node_id, (0, 0))
+            print("Running in simulated mode")
         else:
             self.sim_client = None
 

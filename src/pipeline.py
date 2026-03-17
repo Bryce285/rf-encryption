@@ -81,6 +81,7 @@ class Cli:
     # ------------------------------------------------------------------
     def receive_signal(self):
         """Continuously receive, demodulate, reassemble, and decrypt messages."""
+        frame_decoder = framing.FrameDecoder()
         reassembler = protocol.Reassembler()
 
         while True:
@@ -107,35 +108,35 @@ class Cli:
                 logger.info("ACK event set")
                 continue
 
-            # --- Otherwise treat as a data packet ---
-            parsed = framing.parse_packet(demodulated)
-            if parsed is not None:
+            packets = frame_decoder.feed(demodulated)
 
+            for parsed in packets:
                 print("Packet has been parsed")
 
-                msg_id  = parsed.get("message_id")
-                seq     = parsed.get("seq")
-                total   = parsed.get("total")
-                payload = parsed.get("payload")
+                msg_id = parsed["message_id"]
+                seq = parsed["seq"]
+                total = parsed["total"]
+                payload = parsed["payload"]
 
-                # Send ACK back to the transmitter
                 ack_packet = framing.build_ack(msg_id, seq)
                 ack_signal = modulation.text_to_afsk(ack_packet)
                 self.interface.send(ack_signal, self.channel)
 
-                # Attempt to reassemble the full message
                 assembled = reassembler.add_packet(msg_id, seq, total, payload)
                 if assembled is not None:
 
                     print("Packet assembled")
 
-                    # Decrypt the reassembled ciphertext
                     nonce = assembled[:crypto.Symmetric.AESGCM_NONCE_LEN]
                     ciphertext = assembled[crypto.Symmetric.AESGCM_NONCE_LEN:]
-                    plaintext_bytes = crypto.Symmetric.decrypt_aes(ciphertext, self.aes_dek, nonce)
+                    plaintext_bytes = crypto.Symmetric.decrypt_aes(
+                        ciphertext, self.aes_dek, nonce
+                    )
 
-                    # Decode bytes to string before printing
-                    cli.print_msg(self.channel, plaintext_bytes.decode("utf-8", errors="replace"))
+                    cli.print_msg(
+                        self.channel,
+                        plaintext_bytes.decode("utf-8", errors="replace")
+                    )
 
     # ------------------------------------------------------------------
     # Main CLI loop

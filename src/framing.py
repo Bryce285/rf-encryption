@@ -119,3 +119,60 @@ def parse_ack(packet: bytes):
         "message_id": msg_id,
         "seq": seq
     }
+
+class FrameDecoder:
+    def __init__(self):
+        self.buffer = b''
+        self.sync_word = PREAMBLE + SYNC
+
+    def feed(self, data: bytes):
+        self.buffer += data
+        packets = []
+
+        while True:
+            # 1. Find start of frame
+            start = self.buffer.find(self.sync_word)
+            if start == -1:
+                # No sync found → discard old junk
+                self.buffer = b''
+                break
+
+            # Trim leading garbage
+            if start > 0:
+                self.buffer = self.buffer[start:]
+
+            # 2. Check if we have enough for header
+            if len(self.buffer) < len(self.sync_word) + HEADER_SIZE:
+                break
+
+            offset = len(self.sync_word)
+
+            header = self.buffer[offset:offset + HEADER_SIZE]
+            try:
+                version, pkt_type, msg_id, seq, total, payload_len = \
+                    struct.unpack(HEADER_FORMAT, header)
+            except struct.error:
+                # Corrupt header → skip sync
+                self.buffer = self.buffer[len(self.sync_word):]
+                continue
+
+            # 3. Compute full frame size
+            full_size = (
+                len(self.sync_word) +
+                HEADER_SIZE +
+                payload_len +
+                4  # CRC
+            )
+
+            if len(self.buffer) < full_size:
+                # Wait for more data
+                break
+
+            frame = self.buffer[:full_size]
+            self.buffer = self.buffer[full_size:]
+
+            parsed = parse_packet(frame)
+            if parsed:
+                packets.append(parsed)
+
+        return packets
