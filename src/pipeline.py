@@ -21,8 +21,8 @@ from prompt_toolkit.patch_stdout import patch_stdout
 # Setup logging
 logging.basicConfig(
 	filename='../log.txt',
-	level=logging.DEBUG,
-	format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+	format='%(asctime)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 

@@ -1,92 +1,80 @@
-2026-03-09 16:20:44 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:20:46 - pipeline - INFO - TX: packet 0 (66 B, 21120 samples)
-2026-03-09 16:20:49 - pipeline - INFO - TX: packet 0 (66 B, 21120 samples)
-2026-03-09 16:20:51 - pipeline - INFO - TX: packet 0 (66 B, 21120 samples)
-2026-03-09 16:20:54 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:21:34 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:21:36 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:21:38 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
-2026-03-09 16:21:41 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
-2026-03-09 16:21:44 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
-2026-03-09 16:21:47 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:22:13 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
-2026-03-09 16:22:16 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
-2026-03-09 16:22:19 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
-2026-03-09 16:22:33 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:22:36 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:22:38 - pipeline - INFO - TX: packet 0 (70 B, 22400 samples)
-2026-03-09 16:22:41 - pipeline - INFO - ACK event set
-2026-03-09 16:22:41 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:24:27 - pipeline - INFO - TX: packet 0 (66 B, 21120 samples)
-2026-03-09 16:24:29 - pipeline - INFO - ACK event set
-2026-03-09 16:24:29 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:31:40 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-09 16:31:42 - pipeline - INFO - ACK event set
-2026-03-09 16:31:42 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:34:00 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:34:02 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-09 16:34:04 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-09 16:34:07 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-09 16:34:53 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-09 16:34:56 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-09 16:34:58 - pipeline - INFO - RX samples: 20480
-2026-03-09 16:34:58 - pipeline - INFO - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
-2026-03-09 16:34:58 - pipeline - INFO - RX samples: 1600
-2026-03-09 16:34:58 - pipeline - INFO - RX: b'\x02\x00\x01\x00\x00'
-2026-03-09 16:34:58 - pipeline - INFO - ACK event set
-2026-03-12 09:59:56 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-12 09:59:59 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-12 10:00:01 - pipeline - INFO - RX samples: 20480
-2026-03-12 10:00:01 - pipeline - INFO - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
-2026-03-12 10:00:01 - pipeline - INFO - RX samples: 1600
-2026-03-12 10:00:01 - pipeline - INFO - RX: b'\x02\x00\x01\x00\x00'
-2026-03-12 10:00:01 - pipeline - INFO - ACK event set
-2026-03-12 10:00:17 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-12 10:00:18 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-12 10:00:20 - pipeline - INFO - RX samples: 20480
-2026-03-12 10:00:20 - pipeline - INFO - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
-2026-03-12 10:00:20 - pipeline - INFO - RX samples: 1600
-2026-03-12 10:00:20 - pipeline - INFO - RX: b'\x02\x00\x01\x00\x00'
-2026-03-12 10:00:20 - pipeline - INFO - ACK event set
-2026-03-16 23:26:07 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:26:32 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:35:16 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:37:45 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:38:03 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:39:11 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:39:17 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:41:33 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:41:37 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:42:59 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-16 23:59:24 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 00:01:45 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 00:06:00 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 00:08:27 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 00:10:36 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 00:10:37 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 00:10:40 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 00:10:43 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 00:12:17 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 00:12:19 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 00:12:22 - pipeline - INFO - RX samples: 20480
-2026-03-17 00:12:22 - pipeline - INFO - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
-2026-03-17 00:12:22 - pipeline - INFO - RX samples: 1600
-2026-03-17 00:12:22 - pipeline - INFO - RX: b'\x02\x00\x01\x00\x00'
-2026-03-17 00:12:22 - pipeline - INFO - ACK event set
-2026-03-17 12:11:32 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 12:11:33 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 12:35:22 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 12:35:23 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 12:35:26 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 12:35:29 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 12:39:01 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 12:39:03 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 12:39:06 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 12:39:09 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 12:42:45 - asyncio - DEBUG - Using selector: EpollSelector
-2026-03-17 12:42:45 - pipeline - INFO - TX: packet 0 (64 B, 20480 samples)
-2026-03-17 12:42:48 - pipeline - INFO - RX samples: 20480
-2026-03-17 12:42:48 - pipeline - INFO - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
-2026-03-17 12:42:48 - pipeline - INFO - RX samples: 1600
-2026-03-17 12:42:48 - pipeline - INFO - RX: b'\x02\x00\x01\x00\x00'
-2026-03-17 12:42:48 - pipeline - INFO - ACK event set
+2026-03-16 18:32:16 - RX samples: 48000
+2026-03-16 18:32:16 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:32:17 - RX samples: 48000
+2026-03-16 18:32:17 - RX: b'\xff\xff\xff\xff\xff\xef\xff\xf7\xff\xff\xfb\xff\xf7\xfd\xff\xfd\xff\xff\xff\xff\xff\xff\xfb\xff'
+2026-03-16 18:32:18 - RX samples: 48000
+2026-03-16 18:32:18 - RX: b'\xff\xff\xfe\xff\xff\xff\xfe\xff\x97\xff\xfd\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xe6'
+2026-03-16 18:32:19 - RX samples: 48000
+2026-03-16 18:32:19 - RX: b'\xff\xff\xef\xff\xbf\xff\xef\xff\xff\xff\xff\xef\xff\xff\xff\xff\xff\xff\xff\xf7\xff\xfe\xfd\xff'
+2026-03-16 18:32:20 - RX samples: 48000
+2026-03-16 18:32:21 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xe7\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:32:22 - RX samples: 48000
+2026-03-16 18:32:22 - RX: b'\xff\xff\xef\xff\xff\xff\xff\xff\xff\xff\xf9\xef\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:32:23 - RX samples: 48000
+2026-03-16 18:32:23 - RX: b'\xff\xff\xff\xff\xff\xef\xff\xff\xff\xff\xff\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:32:28 - TX: packet 0 (64 B, 20480 samples)
+2026-03-16 18:32:30 - TX: packet 0 (64 B, 20480 samples)
+2026-03-16 18:32:32 - TX: packet 0 (64 B, 20480 samples)
+2026-03-16 18:43:28 - RX samples: 48000
+2026-03-16 18:43:28 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:36 - RX samples: 48000
+2026-03-16 18:43:36 - RX: b'n\x86[\xc7\xff\x89\xe2\x03\xd0>\x87~\x98 M\x9ewr\xbb6hb\x14\xf7'
+2026-03-16 18:43:36 - RX samples: 48000
+2026-03-16 18:43:36 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:37 - RX samples: 48000
+2026-03-16 18:43:37 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:37 - RX samples: 48000
+2026-03-16 18:43:37 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xbf\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xbf\xff'
+2026-03-16 18:43:38 - RX samples: 48000
+2026-03-16 18:43:38 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xbf\xff\xff\xbf\xff\xff\xff\xff\xff\x7f\xff\xff\xff\xff\xff'
+2026-03-16 18:43:38 - RX samples: 48000
+2026-03-16 18:43:38 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xdf\xff\xef\x7f\xff\xf7\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:39 - RX samples: 48000
+2026-03-16 18:43:39 - RX: b'\xff\xff\xef\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xf7\xfb\xff\xff\xed\xfb\xff\xff\xff\xe3\xed'
+2026-03-16 18:43:39 - RX samples: 48000
+2026-03-16 18:43:39 - RX: b'\xff\xff\xde\xbd\xff\xff\xff\xfd\xef\xff\xff\xff\xfd\xff\xff\xff\xff\xff\xff\xff\xff\xff\x7f\xff'
+2026-03-16 18:43:40 - RX samples: 48000
+2026-03-16 18:43:40 - RX: b'\xfe\x9f\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xf7\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:40 - RX samples: 48000
+2026-03-16 18:43:40 - RX: b'\xff\xff\xcf\xf5\xff\xff\xff\xcf\xff\xff\xff\x7f\xbf\xff\xff\xff\xff\xf7\xff\xff\xff\xff\xff\xfe'
+2026-03-16 18:43:41 - RX samples: 48000
+2026-03-16 18:43:41 - RX: b'\xff\xff\xff\x7f\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:41 - RX samples: 48000
+2026-03-16 18:43:41 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe'
+2026-03-16 18:43:42 - RX samples: 48000
+2026-03-16 18:43:42 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xdf\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:42 - RX samples: 48000
+2026-03-16 18:43:42 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:43 - TX: packet 0 (64 B, 20480 samples)
+2026-03-16 18:43:43 - RX samples: 48000
+2026-03-16 18:43:43 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x7f\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:43 - RX samples: 48000
+2026-03-16 18:43:43 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfd\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:44 - RX samples: 48000
+2026-03-16 18:43:44 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:45 - RX samples: 48000
+2026-03-16 18:43:45 - TX: packet 0 (64 B, 20480 samples)
+2026-03-16 18:43:45 - RX: b'\x7f\xff{\xff\xbd\x7f\xff\xf7\xff\xff\xff\xff\xff\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:45 - RX samples: 48000
+2026-03-16 18:43:45 - RX: b'\xbd\x7f\xff\xf7\xff\xff\xff\xff\xff\xfe\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:46 - RX samples: 48000
+2026-03-16 18:43:46 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xddw\xdf\xff\xff\xff\xff\xff\xff\xff\xbf\xff\xff'
+2026-03-16 18:43:46 - TX: packet 0 (64 B, 20480 samples)
+2026-03-16 18:43:46 - RX samples: 48000
+2026-03-16 18:43:46 - RX: b'\xed\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xf7\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:47 - RX samples: 48000
+2026-03-16 18:43:47 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:48 - RX samples: 48000
+2026-03-16 18:43:48 - RX: b'\xff\xf7\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:48 - RX samples: 48000
+2026-03-16 18:43:48 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xf7\xff\xff\xff\xff\xbf\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:49 - RX samples: 48000
+2026-03-16 18:43:49 - RX: b'\xff\xff\xff\xfe\xbd\xff\xdf\xff\xff\xff\xff\xff\xff\xff\xff\xdf\xff\xff\xff\xff\xff\xff\xfd\xff'
+2026-03-16 18:43:49 - RX samples: 48000
+2026-03-16 18:43:49 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x9f\xff\x7f\xff'
+2026-03-16 18:43:50 - RX samples: 48000
+2026-03-16 18:43:50 - RX: b'\xbf\xff\xff\xff\xff\xff\xff\xff\xff\xff\x7f\xff\xff\xff\xff\xbf\xff\xff\xff\xff\xdf\xff\xff\xff'
+2026-03-16 18:43:50 - RX samples: 48000
+2026-03-16 18:43:50 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xf7\xff\xff\xff\xdf\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-16 18:43:51 - RX samples: 48000
+2026-03-16 18:43:51 - RX: b'\xff\xff\xf5\xff\xff\xff\xff\xff\xff\x7f\xff\xff\xfd\xff\xff\xbf\xfb\xff\xff\xff\xff\xff\xff\xff'

@@ -47,6 +47,8 @@ def main():
         # because sd.play(device=…) requires that original index.
         devices = sd.query_devices()
 
+        print("\nWelcome to RF Crypt! Please select your audio devices.\n")
+
         output_devices = [
             (i, d) for i, d in enumerate(devices)
             if d['max_output_channels'] > 0
@@ -68,13 +70,11 @@ def main():
             print(f"{idx}: {device['name']}")
             
         mic_idx = input_devices[int(input("\nEnter device number: "))][0]
-        print("\n")
         
         # Resolve the user's selection back to the original device index
         cli_pipeline = pipeline.Cli(node_id, simulated, speaker_idx, mic_idx)
         cli_pipeline.orchestrateCli()
     else:
-        # ----- GUI mode -----
         pipeline.orchestrateGui()
 
 if __name__ == "__main__":
