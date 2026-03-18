@@ -4,22 +4,18 @@ CLI module: provides the text-based user interface for the messaging app.
 Handles prompt display, message printing, and system command parsing
 (e.g. switching channels).
 """
+from prompt_toolkit import print_formatted_text
+from prompt_toolkit.formatted_text import HTML
 
-# Bold ANSI escape prefix / suffix shared by get_msg and print_msg
-_BOLD = '\033[1m'
-_RESET = '\033[0m'
-
-def _header(channel: str) -> str:
+def header(channel: str) -> str:
     """Return the bold ``[rfcrypt][channel]`` header."""
-    return _BOLD + f'[rfcrypt][{channel}]' + _RESET
-
-def get_msg(channel: str) -> str:
-    """Display a bold prompt and return the user's typed message."""
-    return input(f"{_header(channel)} YOU -> ")
+    return f"[rfcrypt][{channel}]"
 
 def print_msg(channel: str, msg: str) -> None:
     """Print a received message with a bold header."""
-    print(f"{_header(channel)} RECEIVED MESSAGE -> {msg}")
+    print_formatted_text(
+        HTML(f"<b>{header(channel)}</b> RECEIVED MESSAGE -> {msg}")
+    )
 
 def parse_cmd(cmd: str) -> tuple[str, str]:
     """

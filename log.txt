@@ -78,3 +78,47 @@
 2026-03-16 18:43:50 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xf7\xff\xff\xff\xdf\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
 2026-03-16 18:43:51 - RX samples: 48000
 2026-03-16 18:43:51 - RX: b'\xff\xff\xf5\xff\xff\xff\xff\xff\xff\x7f\xff\xff\xfd\xff\xff\xbf\xfb\xff\xff\xff\xff\xff\xff\xff'
+2026-03-17 17:12:05 - TX: packet 0 (64 B, 20480 samples)
+2026-03-17 17:12:07 - RX samples: 20480
+2026-03-17 17:12:07 - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
+2026-03-17 17:12:07 - RX samples: 1600
+2026-03-17 17:12:07 - RX: b'\x02\x00\x01\x00\x00'
+2026-03-17 17:12:07 - ACK event set
+2026-03-17 17:12:12 - TX: packet 0 (64 B, 20480 samples)
+2026-03-17 17:12:14 - RX samples: 20480
+2026-03-17 17:12:14 - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
+2026-03-17 17:12:15 - RX samples: 1600
+2026-03-17 17:12:15 - RX: b'\x02\x00\x02\x00\x00'
+2026-03-17 17:12:15 - ACK event set
+2026-03-17 17:16:15 - RX samples: 48000
+2026-03-17 17:16:15 - RX: b'\xff\xff\xff\xff\xff\xf7\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
+2026-03-17 17:16:16 - RX samples: 48000
+2026-03-17 17:16:17 - RX: b'\x99\x80\x80\x80\x00\x00\x00\x00\x01\x00\x1c#\x997>n\x9f\xfeS\xc5\x12\x8e\x9c,'
+2026-03-17 17:16:18 - RX samples: 48000
+2026-03-17 17:16:18 - RX: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xef\xff\xff\xff\xff\xff'
+2026-03-17 17:16:19 - RX samples: 48000
+2026-03-17 17:16:19 - RX: b'\xff\xff\xfb\xff\xff\xef\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfd\xff\xff\xdf\xff\xff\xff'
+2026-03-17 17:16:42 - TX: packet 0 (64 B, 20480 samples)
+2026-03-17 17:16:45 - TX: packet 0 (64 B, 20480 samples)
+2026-03-17 17:16:46 - TX: packet 0 (64 B, 20480 samples)
+2026-03-17 21:30:25 - TX: packet 0 (64 B, 20480 samples)
+2026-03-17 21:30:28 - TX: packet 0 (64 B, 20480 samples)
+2026-03-17 21:30:31 - TX: packet 0 (64 B, 20480 samples)
+2026-03-17 21:37:43 - TX: packet 0 (69 B, 22080 samples)
+2026-03-17 21:37:46 - TX: packet 0 (69 B, 22080 samples)
+2026-03-17 21:37:49 - TX: packet 0 (69 B, 22080 samples)
+2026-03-17 21:58:50 - TX: packet 0 (69 B, 22080 samples)
+2026-03-17 21:58:54 - TX: packet 0 (69 B, 22080 samples)
+2026-03-17 21:58:57 - TX: packet 0 (69 B, 22080 samples)
+2026-03-17 22:01:48 - TX: packet 0 (69 B, 22080 samples)
+2026-03-17 22:01:50 - RX samples: 22080
+2026-03-17 22:01:50 - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
+2026-03-17 22:01:50 - RX samples: 1600
+2026-03-17 22:01:50 - RX: b'\x02\x00\x01\x00\x00'
+2026-03-17 22:01:50 - ACK event set
+2026-03-17 22:02:01 - TX: packet 0 (69 B, 22080 samples)
+2026-03-17 22:02:03 - RX samples: 22080
+2026-03-17 22:02:03 - RX: b'UUUUUUUUUUUUUUUUUUUU\xd3\x91\x01\x01'
+2026-03-17 22:02:03 - RX samples: 1600
+2026-03-17 22:02:03 - RX: b'\x02\x00\x01\x00\x00'
+2026-03-17 22:02:03 - ACK event set

@@ -15,7 +15,7 @@ import protocol
 import threading
 from interface import Interface
 from prompt_toolkit import PromptSession
-from prompt_toolkit.formatted_text import ANSI
+from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.patch_stdout import patch_stdout
 
 # Setup logging
@@ -144,22 +144,28 @@ class Cli:
     def orchestrateCli(self):
         """Initialise keys and run the send loop (with background rx thread)."""
 
+        session = PromptSession()
+
         # --- Key setup ---
-        passphrase = input(f'{cli._header(self.channel)} Enter your passphrase: ')
+        passphrase = session.prompt(
+            HTML(f'<b>{cli.header(self.channel)}</b> Enter your passphrase: '),
+            is_password=True
+        )
         self.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)
 
         # Start background receive thread
         threading.Thread(target=self.receive_signal, daemon=True).start()
 
-        # --- Send loop with prompt_toolkit for clean concurrent I/O ---
-        session = PromptSession()
         packetizer = protocol.Packetizer()
         
         with patch_stdout():
             while True:
                 # Now prompt for input (won't be disrupted by background messages)
                 try:
-                    msg = session.prompt(f"{cli.get_msg(self.channel)}")
+                    msg = session.prompt(
+                        HTML(f"<b>{cli.header(self.channel)}</b> YOU -> "),
+                        is_password=False
+                    )
                 except KeyboardInterrupt:
                     print("\nExiting...")
                     break
