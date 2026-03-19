@@ -130,18 +130,14 @@ class FrameDecoder:
         packets = []
 
         while True:
-            # 1. Find start of frame
             start = self.buffer.find(self.sync_word)
             if start == -1:
-                # No sync found → discard old junk
                 self.buffer = b''
                 break
 
-            # Trim leading garbage
             if start > 0:
                 self.buffer = self.buffer[start:]
 
-            # 2. Check if we have enough for header
             if len(self.buffer) < len(self.sync_word) + HEADER_SIZE:
                 break
 
@@ -152,20 +148,17 @@ class FrameDecoder:
                 version, pkt_type, msg_id, seq, total, payload_len = \
                     struct.unpack(HEADER_FORMAT, header)
             except struct.error:
-                # Corrupt header → skip sync
                 self.buffer = self.buffer[len(self.sync_word):]
                 continue
 
-            # 3. Compute full frame size
             full_size = (
                 len(self.sync_word) +
                 HEADER_SIZE +
                 payload_len +
-                4  # CRC
+                4
             )
 
             if len(self.buffer) < full_size:
-                # Wait for more data
                 break
 
             frame = self.buffer[:full_size]

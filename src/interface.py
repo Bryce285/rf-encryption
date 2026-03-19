@@ -59,6 +59,7 @@ class Interface:
             msg:     numpy array of audio samples (float64)
             channel: RF channel identifier (used by the sim server)
         """
+
         # Play the audio on the selected output device
         with self._sd_lock:
             try:
@@ -67,7 +68,6 @@ class Interface:
             except Exception as e:
                 print(f"Error during audio playback: {e}")
 
-        # Forward to the simulation server when in simulated mode
         if self.SIMULATED and self.sim_client is not None:
             self.sim_client.channel = channel
             self.sim_client.send(msg)

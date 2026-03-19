@@ -15,8 +15,9 @@ import math
 import numpy as np
 from collections import deque
 
-# Maximum bytes of base64-encoded payload per UDP datagram
-MAX_UDP_PAYLOAD = 1200
+# Maximum raw bytes per UDP chunk (base64-encoded in the datagram).
+# On localhost the loopback MTU is 65535, so large chunks are fine.
+MAX_UDP_PAYLOAD = 48000
 
 class RadioClient:
     def __init__(self, node_id, position=(0,0),
@@ -33,6 +34,7 @@ class RadioClient:
         self.transport_counter = 0
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2 * 1024 * 1024)
         # Bind to port 0 so the OS assigns a free ephemeral port.
         # This allows multiple clients on the same machine without conflicts.
         self.sock.bind(("localhost", local_port))
@@ -65,7 +67,6 @@ class RadioClient:
         }).encode(), self.server_addr)
 
     def send(self, signal: np.ndarray):
-        print("udp send called")
         raw_bytes = signal.tobytes()
 
         transport_id = self._next_transport_id()
@@ -121,6 +122,7 @@ class RadioClient:
                     )
                 except KeyError:
                     # Missing chunk → shouldn't happen, but be safe
+                    print("Missing chunk")
                     continue
 
                 signal = np.frombuffer(full_bytes, dtype=np.float64)

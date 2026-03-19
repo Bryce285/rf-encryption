@@ -13,6 +13,7 @@ import logging
 import modulation
 import protocol
 import threading
+import time
 from interface import Interface
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import HTML
@@ -69,7 +70,7 @@ class Cli:
                 self.ack_event.clear()
                 self.interface.send(signal, self.channel)
 
-                if self.ack_event.wait(timeout=1.0) and self.last_ack_seq == seq:
+                if self.ack_event.wait(timeout=3.0) and self.last_ack_seq == seq:
                     break
                 print(f"Retrying packet {seq} (attempt {attempt}/{MAX_RETRIES})")
             else:
@@ -90,9 +91,9 @@ class Cli:
             # Poll the interface for an incoming signal
             rx_msg = self.interface.receive()
             if rx_msg is None or rx_msg.size == 0:
+                time.sleep(0.01)
                 continue
 
-            print("signal received from interface")
             logger.info("RX samples: %s", len(rx_msg))
 
             # Demodulate AFSK audio back into raw bytes
@@ -111,7 +112,6 @@ class Cli:
             packets = frame_decoder.feed(demodulated)
 
             for parsed in packets:
-                print("Packet has been parsed")
 
                 msg_id = parsed["message_id"]
                 seq = parsed["seq"]
@@ -124,8 +124,6 @@ class Cli:
 
                 assembled = reassembler.add_packet(msg_id, seq, total, payload)
                 if assembled is not None:
-
-                    print("Packet assembled")
 
                     nonce = assembled[:crypto.Symmetric.AESGCM_NONCE_LEN]
                     ciphertext = assembled[crypto.Symmetric.AESGCM_NONCE_LEN:]
