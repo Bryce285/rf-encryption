@@ -11,7 +11,6 @@ Also provides simple preamble helpers and ACK packet support.
 import struct
 import zlib
 
-
 # ---------------------------------------------------------------
 # Binary packet format constants
 # ---------------------------------------------------------------
