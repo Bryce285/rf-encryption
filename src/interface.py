@@ -37,7 +37,6 @@ class Interface:
         # C-level access from different threads (causes double-free crashes).
         self._sd_lock = threading.Lock()
 
-        # Only connect to the simulation server when running in simulated mode
         if self.SIMULATED:
             self.sim_client = rfsim_client.RadioClient(node_id, (0, 0))
             print("Running in simulated mode")

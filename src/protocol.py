@@ -77,9 +77,7 @@ class Reassembler:
         msg = self.messages[msg_id]
         msg["chunks"][seq] = payload
 
-        # Check if all fragments have been received
         if len(msg["chunks"]) == msg["total"]:
-            # Reassemble in order
             data = b''.join(
                 msg["chunks"][i]
                 for i in range(msg["total"])

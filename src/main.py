@@ -36,7 +36,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Avoid shadowing the built-in `id`
     node_id = args.id
     simulated = args.simulated
 
@@ -71,11 +70,11 @@ def main():
             
         mic_idx = input_devices[int(input("\nEnter device number: "))][0]
         
-        # Resolve the user's selection back to the original device index
         cli_pipeline = pipeline.Cli(node_id, simulated, speaker_idx, mic_idx)
         cli_pipeline.orchestrateCli()
     else:
-        pipeline.orchestrateGui()
+        # Case for when the gui is implemented
+        raise NotImplementedError
 
 if __name__ == "__main__":
     main()

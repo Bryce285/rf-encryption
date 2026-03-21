@@ -3,6 +3,10 @@ Modulation module: AFSK (Audio Frequency-Shift Keying) encoding / decoding.
 
 Converts raw bytes into a two-tone audio waveform (mark / space frequencies)
 and demodulates the waveform back to bytes using FFT peak detection.
+
+This implementation of modulation is based on an implementation from a 
+similar radio encryption project made by Unlimited Research Cooperative, which 
+can be found at: https://github.com/Unlimited-Research-Cooperative/AES256-radio
 """
 
 import numpy as np
@@ -30,10 +34,8 @@ def text_to_afsk(data, baud_rate=1200, mark_freq=1200, space_freq=2200, sample_r
     samples_per_bit = int(sample_rate / baud_rate)
     t_bit = np.arange(samples_per_bit) / sample_rate
 
-    # Build a frequency array: one freq value per bit
     freqs = np.array([mark_freq if b == '1' else space_freq for b in bits])
 
-    # Tile time-base for every bit and compute sine in one shot
     t_all = np.tile(t_bit, len(bits))
     freq_all = np.repeat(freqs, samples_per_bit)
     return np.sin(2 * np.pi * freq_all * t_all)

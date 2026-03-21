@@ -45,12 +45,10 @@ class Cli:
         self.node_id = node_id
         self.simulated = simulated
 
-        # Crypto material (assigned during orchestrateCli)
         self.aes_dek: bytes = b""
 
         self.channel = "ch1"  # current RF channel
 
-        # ACK synchronisation between rx-thread and tx-loop
         self.ack_event = threading.Event()
         self.last_ack_seq = -1
 
@@ -65,8 +63,6 @@ class Cli:
                 signal = modulation.text_to_afsk(packet)
                 logger.info(f"TX: packet {seq} ({len(packet)} B, {len(signal)} samples)")
 
-                # Clear BEFORE sending so that an ACK arriving while
-                # send() blocks isn't wiped out by a late clear().
                 self.ack_event.clear()
                 self.interface.send(signal, self.channel)
 
@@ -88,7 +84,6 @@ class Cli:
         while True:
             reassembler.clear_timeouts()
 
-            # Poll the interface for an incoming signal
             rx_msg = self.interface.receive()
             if rx_msg is None or rx_msg.size == 0:
                 time.sleep(0.01)
@@ -96,12 +91,10 @@ class Cli:
 
             logger.info("RX samples: %s", len(rx_msg))
 
-            # Demodulate AFSK audio back into raw bytes
             demodulated = modulation.afsk_to_text(rx_msg)
 
             logger.info("RX: %s", demodulated[:24])
 
-            # --- Check if this is an ACK packet ---
             ack_seq = framing.parse_ack(demodulated)
             if ack_seq is not None:
                 self.last_ack_seq = ack_seq["seq"]
@@ -144,21 +137,18 @@ class Cli:
 
         session = PromptSession()
 
-        # --- Key setup ---
         passphrase = session.prompt(
             HTML(f'<b>{cli.header(self.channel)}</b> Enter your passphrase: '),
             is_password=True
         )
         self.aes_dek = crypto.Symmetric.load_or_generate_key(passphrase)
 
-        # Start background receive thread
         threading.Thread(target=self.receive_signal, daemon=True).start()
 
         packetizer = protocol.Packetizer()
         
         with patch_stdout():
             while True:
-                # Now prompt for input (won't be disrupted by background messages)
                 try:
                     msg = session.prompt(
                         HTML(f"<b>{cli.header(self.channel)}</b> YOU -> "),
@@ -168,7 +158,7 @@ class Cli:
                     print("\nExiting...")
                     break
 
-                # --- Handle system commands (e.g. \SYSCMD channel=ch2) ---
+                # Handle system commands
                 if msg.startswith("\\SYSCMD"):
                     msg = msg[len("\\SYSCMD"):].strip()
                     field, value = cli.parse_cmd(msg)
@@ -180,7 +170,6 @@ class Cli:
 
                     continue
 
-                # --- Encrypt and transmit ---
                 msg_bytes = msg.encode("utf-8")
                 nonce, ciphertext = crypto.Symmetric.encrypt_aes(msg_bytes, self.aes_dek)
                 tx_payload = nonce + ciphertext
@@ -188,6 +177,5 @@ class Cli:
                 self._send_with_ack(packetizer.get_packets(tx_payload))
 
 def orchestrateGui():
-    """Launch the PySimpleGUI front-end."""
-    import gui
-    gui.run()
+    # Function for when the gui is added
+    raise NotImplementedError

@@ -33,10 +33,8 @@ def parse_cmd(cmd: str) -> tuple[str, str]:
 
     if cmd.startswith("channel="):
         field = "channel"
-        # Extract the value after the '=' (no off-by-one trim)
         value_tmp = cmd[len("channel="):]
 
-        # Validate: must look like "ch<digits>"
         if value_tmp.startswith("ch") and value_tmp[2:].isdigit():
             value = value_tmp
 

@@ -15,8 +15,8 @@ import math
 import numpy as np
 from collections import deque
 
-# Maximum raw bytes per UDP chunk (base64-encoded in the datagram).
-# On localhost the loopback MTU is 65535, so large chunks are fine.
+# Maximum raw bytes per UDP chunk
+# On localhost the loopback MTU is 65535
 MAX_UDP_PAYLOAD = 48000
 
 class RadioClient:
@@ -35,6 +35,7 @@ class RadioClient:
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2 * 1024 * 1024)
+
         # Bind to port 0 so the OS assigns a free ephemeral port.
         # This allows multiple clients on the same machine without conflicts.
         self.sock.bind(("localhost", local_port))
@@ -69,6 +70,7 @@ class RadioClient:
     def send(self, signal: np.ndarray):
         raw_bytes = signal.tobytes()
 
+        # Chunk data to avoid overflowing datagrams
         transport_id = self._next_transport_id()
         chunk_size = MAX_UDP_PAYLOAD
         total = math.ceil(len(raw_bytes) / chunk_size)
@@ -95,7 +97,6 @@ class RadioClient:
             if msg.get("type") != "receive":
                 continue
 
-            # Extract transport fields (depends on your server forwarding format)
             t_id = msg.get("id")
             seq = msg.get("seq")
             total = msg.get("total")
@@ -113,7 +114,6 @@ class RadioClient:
             entry = self.partial_transports[t_id]
             entry["chunks"][seq] = base64.b64decode(payload)
 
-            # Only assemble if ALL chunks are present
             if len(entry["chunks"]) == entry["total"]:
                 try:
                     full_bytes = b''.join(
@@ -121,7 +121,7 @@ class RadioClient:
                         for i in range(entry["total"])
                     )
                 except KeyError:
-                    # Missing chunk → shouldn't happen, but be safe
+                    # Case for a missing chunk
                     print("Missing chunk")
                     continue
 

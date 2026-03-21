@@ -120,6 +120,11 @@ def parse_ack(packet: bytes):
         "seq": seq
     }
 
+
+# ---------------------------------------------------------------
+# Frame decoder for parsing data stream into packets
+# ---------------------------------------------------------------
+
 class FrameDecoder:
     def __init__(self):
         self.buffer = b''

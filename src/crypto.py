@@ -53,7 +53,6 @@ class Symmetric:
                     "Delete the key file to generate a new one."
                 ) from None
 
-        # Generate a fresh DEK and persist it wrapped by a passphrase-derived KEK
         dek = os.urandom(Symmetric.AESGCM_DEK_LEN)
         salt = os.urandom(Symmetric.AESGCM_SALT_LEN)
         nonce = os.urandom(Symmetric.AESGCM_NONCE_LEN)
@@ -84,7 +83,6 @@ def main():
     """Interactive smoke test for AES-GCM encryption."""
     passphrase = input("Enter your passphrase: ")
 
-    # --- AES round-trip ---
     print("SYMMETRIC ENCRYPTION TESTING:")
     key = Symmetric.load_or_generate_key(passphrase)
     plaintext_b = input("Enter plaintext for symmetric testing: ").encode("utf-8")
@@ -92,7 +90,6 @@ def main():
     print(f"AES ciphertext: {ciphertext.hex()}")
     print(f"Decrypted: {Symmetric.decrypt_aes(ciphertext, key, nonce).decode('utf-8')}")
 
-    # --- Key display ---
     print("KEY DISPLAY TESTING")
     Symmetric.display_key(key)
 

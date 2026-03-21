@@ -25,16 +25,12 @@ class RadioSimServer:
         # Simulation parameters
         self.latency = 0.01
         self.max_range = 1000
-        self.burst_loss_prob = 0.03     # chance a burst starts
+        self.burst_loss_prob = 0.03     # chance a packet-loss burst starts
         self.burst_duration = (0.5, 2.0)  # min/max seconds a burst lasts
         self.active_bursts = {}        # (sender_id, receiver_id) -> burst_end_time
 
         self.pending_transports = {}   # transport_id -> {total, chunks}
         self.pending_lock = threading.Lock()
-
-    # ============================
-    # Server Main Loop
-    # ============================
 
     def start(self):
         print("RadioSim server running...")
@@ -51,10 +47,6 @@ class RadioSimServer:
                 daemon=True
             ).start()
 
-    # ============================
-    # Message Dispatcher
-    # ============================
-
     def handle_message(self, msg, addr):
         msg_type = msg.get("type")
 
@@ -66,10 +58,6 @@ class RadioSimServer:
 
         elif msg_type == "transport":
             self.buffer_transport(msg)
-
-    # ============================
-    # Node Registration
-    # ============================
 
     def register_node(self, msg, addr):
         node_id = msg["node_id"]
@@ -85,10 +73,6 @@ class RadioSimServer:
         self.channels.setdefault(channel, set())
 
         print(f"{node_id} registered on {channel}")
-
-    # ============================
-    # Channel Switching
-    # ============================
 
     def switch_channel(self, msg):
         node_id = msg["node_id"]
@@ -108,10 +92,6 @@ class RadioSimServer:
         dy = pos1[1] - pos2[1]
         print("Calculated distance: " + str(math.sqrt(dx * dx + dy * dy)))
         return math.sqrt(dx * dx + dy * dy)
-
-    # ============================
-    # Transport Chunk Buffering
-    # ============================
 
     def buffer_transport(self, msg):
         """Buffer incoming transport chunks. Once all chunks of a signal
@@ -138,10 +118,6 @@ class RadioSimServer:
 
         # All chunks received — process the complete signal
         self.handle_transmission(ordered_chunks)
-
-    # ============================
-    # Transmission Handling
-    # ============================
 
     def handle_transmission(self, chunks):
         """Simulate transmission of a complete signal (all transport chunks).
@@ -216,10 +192,6 @@ class RadioSimServer:
                 self.sock.sendto(packet, node["addr"])
 
         print(f"{sender_id} transmission complete")
-
-    # ============================
-    # Range Calculation
-    # ============================
 
     def in_range(self, pos1, pos2):
         dx = pos1[0] - pos2[0]
