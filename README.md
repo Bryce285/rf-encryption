@@ -4,8 +4,7 @@ rf-encryption is a small Python project that simulates sending encrypted message
 
 ## TODO
 
-- add logger/remove debug prints
 - improve rf simulation
-- get real audio working if possible
-- get GUI working if possible
+- test simulation with real rf hardware
+- implement gui
 - replace "RECEIVED MESSAGE" with connected peer's ID (e.g. "Alice says ->")
